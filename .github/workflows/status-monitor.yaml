@@ -1,0 +1,57 @@
+name: Status monitor
+
+# Runs OUTSIDE Minimo's infrastructure (GitHub-hosted), so detection + the page
+# stay up even during a full Minimo/Dokploy outage.
+on:
+  schedule:
+    - cron: '*/15 * * * *'   # email probe every 15 min
+    - cron: '0 */4 * * *'    # + WhatsApp probe every 4h (sends a real message)
+  workflow_dispatch:          # manual run probes everything
+
+concurrency:
+  group: status-monitor
+  cancel-in-progress: false
+
+permissions:
+  contents: write             # commit the refreshed status.json + history
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run probes
+        id: probe
+        env:
+          MINIMO_PROD_API_KEY: ${{ secrets.MINIMO_PROD_API_KEY }}
+          MAILOSAUR_SERVER_ID: ${{ secrets.MAILOSAUR_SERVER_ID }}
+          MAILOSAUR_APIKEY: ${{ secrets.MAILOSAUR_APIKEY }}
+          TRANSACTIONAL_TEST_UID_PROD: ${{ secrets.TRANSACTIONAL_TEST_UID_PROD }}
+          WHATSAPP_TEST_RECIPIENT: ${{ secrets.WHATSAPP_TEST_RECIPIENT }}
+          # WhatsApp only on the 4h cron or a manual run (avoids buzzing a phone every 15 min)
+          PROBE_WHATSAPP: ${{ github.event.schedule == '0 */4 * * *' || github.event_name == 'workflow_dispatch' }}
+        run: python3 check.py
+
+      - name: Commit refreshed status
+        run: |
+          git config user.name  "minimo-status-bot"
+          git config user.email "status-bot@users.noreply.github.com"
+          git add status.json data/history.json
+          if git diff --cached --quiet; then
+            echo "no change"
+          else
+            git commit -m "status: ${{ steps.probe.outputs.overall }} ($(date -u +%FT%TZ))"
+            git push
+          fi
+
+      - name: Notify Telegram on failure
+        if: steps.probe.outputs.failed == 'true'
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d "chat_id=${{ secrets.TRANSACTIONAL_TEST_TELEGRAM_CHANNEL }}" \
+            -d "parse_mode=Markdown" \
+            --data-urlencode "text=🔴 *Minimo status: ${{ steps.probe.outputs.overall }}*
+${{ steps.probe.outputs.summary }}
+
+Page: https://status.minimo.it  ·  Run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
