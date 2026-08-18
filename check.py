@@ -82,14 +82,23 @@ def probe_email():
 def probe_whatsapp():
     api_key   = env("MINIMO_PROD_API_KEY", required=True)
     recipient = env("WHATSAPP_TEST_RECIPIENT", "+393886543634")
-    payload = {"recipient": recipient, "type": "template",
-               "template": {"name": "hello_world", "languageCode": "en_US"}}
+    tpl_name  = env("WHATSAPP_TEMPLATE_NAME", "finaliseaccount")
+    tpl_lang  = env("WHATSAPP_TEMPLATE_LANG", "en_US")
+    # Comma-separated BODY params the approved template expects (finaliseaccount = 2).
+    params    = [p for p in env("WHATSAPP_TEMPLATE_PARAMS", "Minimo,status-check").split(",")]
+    template  = {"name": tpl_name, "languageCode": tpl_lang}
+    if params and params != [""]:
+        template["components"] = [{"type": "BODY",
+                                   "parameters": [{"type": "text", "text": p} for p in params]}]
+    payload = {"recipient": recipient, "type": "template", "template": template}
     st, body = http("POST", "https://api.minimo.it/public/v1/templates/whatsapp/send",
                     headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
                     body=json.dumps(payload))
     ok = False
     try:
-        ok = (st == 200) and bool(json.loads(body).get("success"))
+        j = json.loads(body)
+        success = j.get("success", (j.get("data") or {}).get("success"))
+        ok = st in (200, 201) and bool(success)
     except Exception:
         ok = False
     return ("operational", f"send accepted (HTTP {st})") if ok else ("down", f"send HTTP {st}: {body[:200]}")
