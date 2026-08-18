@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Minimo — System Status</title>
+<meta name="description" content="Live operational status of Minimo's email & WhatsApp sending." />
+<style>
+  :root{
+    --bg:#fafaf9; --card:#fff; --text:#1c1917; --muted:#78716c; --border:#e7e5e4;
+    --ok:#16a34a; --ok-bg:#dcfce7; --degraded:#d97706; --down:#dc2626; --down-bg:#fee2e2;
+    --dot-empty:#e7e5e4; --shadow:0 1px 2px rgba(0,0,0,.04),0 1px 3px rgba(0,0,0,.06);
+  }
+  @media (prefers-color-scheme:dark){
+    :root{ --bg:#0c0a09; --card:#1c1917; --text:#f5f5f4; --muted:#a8a29e; --border:#292524;
+           --ok-bg:#052e16; --down-bg:#450a0a; --dot-empty:#292524; --shadow:none; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:760px;margin:0 auto;padding:48px 20px 80px}
+  header{display:flex;align-items:center;gap:12px;margin-bottom:28px}
+  .logo{font-weight:700;font-size:20px;letter-spacing:-.02em}
+  .logo span{color:var(--muted);font-weight:500}
+  .banner{display:flex;align-items:center;gap:12px;padding:18px 20px;border-radius:14px;
+    background:var(--card);border:1px solid var(--border);box-shadow:var(--shadow);margin-bottom:28px}
+  .banner .big{width:12px;height:12px;border-radius:50%;flex:0 0 auto}
+  .banner h1{font-size:18px;margin:0;font-weight:600}
+  .banner .sub{color:var(--muted);font-size:13px;margin-top:2px}
+  .comp{background:var(--card);border:1px solid var(--border);border-radius:14px;
+    box-shadow:var(--shadow);padding:18px 20px;margin-bottom:14px}
+  .comp-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .comp-name{display:flex;align-items:center;gap:10px;font-weight:600}
+  .dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
+  .status-label{font-size:13px;font-weight:600}
+  .desc{color:var(--muted);font-size:13px;margin-top:2px;margin-left:19px}
+  .bars{display:flex;gap:2px;margin-top:16px;height:30px;align-items:stretch}
+  .bar{flex:1 1 0;border-radius:2px;background:var(--dot-empty);min-width:2px;transition:opacity .1s}
+  .bar:hover{opacity:.7}
+  .bars-legend{display:flex;justify-content:space-between;color:var(--muted);font-size:11px;margin-top:6px}
+  .ok{background:var(--ok)} .degraded{background:var(--degraded)} .down{background:var(--down)}
+  .t-ok{color:var(--ok)} .t-degraded{color:var(--degraded)} .t-down{color:var(--down)}
+  .b-ok{background:var(--ok)} .b-degraded{background:var(--degraded)} .b-down{background:var(--down)}
+  footer{margin-top:36px;color:var(--muted);font-size:12px;text-align:center;line-height:1.7}
+  .stale{background:var(--down-bg);border-color:var(--down)}
+  .incidents{margin-top:32px}
+  .incidents h2{font-size:14px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0 0 12px}
+  .inc{padding:14px 0;border-top:1px solid var(--border)}
+  .inc .d{color:var(--muted);font-size:12px}
+  a{color:inherit}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">Minimo <span>Status</span></div>
+  </header>
+
+  <div class="banner" id="banner">
+    <div class="big" style="background:var(--dot-empty)"></div>
+    <div>
+      <h1 id="overall">Loading status…</h1>
+      <div class="sub" id="updated"></div>
+    </div>
+  </div>
+
+  <div id="components"></div>
+
+  <div class="incidents" id="incidents" style="display:none">
+    <h2>Recent incidents</h2>
+    <div id="incident-list"></div>
+  </div>
+
+  <footer>
+    Monitored every few minutes by an independent synthetic check (outside Minimo's own infrastructure).<br/>
+    This page is static and hosted independently, so it stays up even if Minimo is down.
+  </footer>
+</div>
+
+<script>
+const LABELS = { operational:"Operational", degraded:"Degraded performance", down:"Outage", unknown:"Unknown" };
+const OVERALL = {
+  operational:"All systems operational",
+  degraded:"Some systems degraded",
+  down:"Active outage",
+  unknown:"Status unavailable"
+};
+const REFRESH_MS = 60000;
+// If the latest check is older than this, the data is stale → warn.
+const STALE_MS = 20 * 60 * 1000;
+
+function clsFor(s){ return s==="operational"?"ok":s==="degraded"?"degraded":s==="down"?"down":""; }
+function timeAgo(iso){
+  if(!iso) return "never";
+  const s = Math.floor((Date.now() - new Date(iso).getTime())/1000);
+  if(s<60) return s+"s ago";
+  if(s<3600) return Math.floor(s/60)+"m ago";
+  if(s<86400) return Math.floor(s/3600)+"h ago";
+  return Math.floor(s/86400)+"d ago";
+}
+
+async function load(){
+  let data;
+  try{
+    const r = await fetch("./status.json?_="+Date.now(), {cache:"no-store"});
+    data = await r.json();
+  }catch(e){
+    document.getElementById("overall").textContent = "Status unavailable";
+    return;
+  }
+
+  const now = Date.now();
+  const last = data.updated_at ? new Date(data.updated_at).getTime() : 0;
+  const stale = now - last > STALE_MS;
+
+  // Overall
+  let overall = data.overall || "unknown";
+  if(stale) overall = "unknown";
+  const banner = document.getElementById("banner");
+  banner.classList.toggle("stale", stale);
+  banner.querySelector(".big").style.background =
+    "var(--"+(overall==="operational"?"ok":overall==="degraded"?"degraded":overall==="down"?"down":"dot-empty")+")";
+  document.getElementById("overall").textContent = stale ? "Status data may be stale" : OVERALL[overall];
+  document.getElementById("updated").textContent =
+    "Last checked " + timeAgo(data.updated_at) + (stale ? " — checker may be down" : "");
+
+  // Components
+  const host = document.getElementById("components");
+  host.innerHTML = "";
+  (data.components||[]).forEach(c=>{
+    const cls = clsFor(c.status);
+    const el = document.createElement("div");
+    el.className = "comp";
+    const bars = (c.history||[]).map(h=>{
+      const bc = h===null ? "" : clsFor(h);
+      const title = h===null ? "no data" : LABELS[h]||h;
+      return `<div class="bar ${bc?("b-"+bc):""}" title="${title}"></div>`;
+    }).join("");
+    el.innerHTML = `
+      <div class="comp-top">
+        <div class="comp-name"><span class="dot ${cls?("b-"+cls):""}"></span>${c.name}</div>
+        <div class="status-label ${cls?("t-"+cls):""}">${LABELS[c.status]||c.status}${c.uptime_90d!=null?` · ${c.uptime_90d}%`:""}</div>
+      </div>
+      ${c.description?`<div class="desc">${c.description}</div>`:""}
+      ${bars?`<div class="bars">${bars}</div><div class="bars-legend"><span>90 days ago</span><span>today</span></div>`:""}
+    `;
+    host.appendChild(el);
+  });
+
+  // Incidents
+  const inc = data.incidents||[];
+  if(inc.length){
+    document.getElementById("incidents").style.display="";
+    document.getElementById("incident-list").innerHTML = inc.map(i=>`
+      <div class="inc">
+        <div class="t-${clsFor(i.impact)||"down"}" style="font-weight:600">${i.title}</div>
+        <div class="d">${i.date} · ${i.status||""}</div>
+        ${i.body?`<div style="margin-top:6px;color:var(--muted)">${i.body}</div>`:""}
+      </div>`).join("");
+  }
+}
+load();
+setInterval(load, REFRESH_MS);
+</script>
+</body>
+</html>
