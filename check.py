@@ -100,10 +100,11 @@ def probe_email():
 def probe_whatsapp():
     api_key   = env("MINIMO_PROD_API_KEY", required=True)
     recipient = env("WHATSAPP_TEST_RECIPIENT", "+393886543634")
-    tpl_name  = env("WHATSAPP_TEMPLATE_NAME", "finaliseaccount")
+    tpl_name  = env("WHATSAPP_TEMPLATE_NAME", "minimo_status_check")
     tpl_lang  = env("WHATSAPP_TEMPLATE_LANG", "en_US")
-    # Comma-separated BODY params the approved template expects (finaliseaccount = 2).
-    params    = [p for p in env("WHATSAPP_TEMPLATE_PARAMS", "Minimo,status-check").split(",")]
+    # Comma-separated BODY params the approved template expects. The dedicated
+    # health-check template `minimo_status_check` (UTILITY, en_US) takes 0 params.
+    params    = [p for p in env("WHATSAPP_TEMPLATE_PARAMS", "").split(",")]
     template  = {"name": tpl_name, "languageCode": tpl_lang}
     if params and params != [""]:
         template["components"] = [{"type": "BODY",
