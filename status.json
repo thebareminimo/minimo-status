@@ -1,14 +1,14 @@
 {
-  "updated_at": "2026-08-19T06:13:39Z",
-  "overall": "down",
+  "updated_at": "2026-08-19T06:32:27Z",
+  "overall": "operational",
   "components": [
     {
       "id": "email",
       "name": "Email delivery",
       "description": "Transactional email is sent and delivered end-to-end.",
-      "status": "down",
+      "status": "operational",
       "uptime_90d": 50.0,
-      "last_check": "2026-08-19T06:13:39Z",
+      "last_check": "2026-08-19T06:32:27Z",
       "history": [
         null,
         null,
