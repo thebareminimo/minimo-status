@@ -16,13 +16,14 @@
            --ok-bg:#052e16; --down-bg:#450a0a; --dot-empty:#292524; --shadow:none; }
   }
   *{box-sizing:border-box}
+  html,body{overflow-x:hidden}
   body{margin:0;background:var(--bg);color:var(--text);
     font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     -webkit-font-smoothing:antialiased}
   .wrap{max-width:760px;margin:0 auto;padding:48px 20px 80px}
-  header{display:flex;align-items:center;gap:12px;margin-bottom:28px}
-  .logo{font-weight:700;font-size:20px;letter-spacing:-.02em}
-  .logo span{color:var(--muted);font-weight:500}
+  header{display:flex;align-items:baseline;gap:10px;margin-bottom:28px}
+  .wordmark{height:23px;width:auto;color:var(--text);display:block;flex:0 0 auto}
+  .logo-status{font-size:19px;font-weight:500;color:var(--muted);letter-spacing:-.01em}
   .banner{display:flex;align-items:center;gap:12px;padding:18px 20px;border-radius:14px;
     background:var(--card);border:1px solid var(--border);box-shadow:var(--shadow);margin-bottom:28px}
   .banner .big{width:12px;height:12px;border-radius:50%;flex:0 0 auto}
@@ -35,8 +36,9 @@
   .dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
   .status-label{font-size:13px;font-weight:600}
   .desc{color:var(--muted);font-size:13px;margin-top:2px;margin-left:19px}
-  .bars{display:flex;gap:2px;margin-top:16px;height:30px;align-items:stretch}
-  .bar{flex:1 1 0;border-radius:2px;background:var(--dot-empty);min-width:2px;transition:opacity .1s}
+  .bars{display:flex;gap:2px;margin-top:16px;height:30px;align-items:stretch;width:100%}
+  /* min-width:0 lets 90 bars shrink to fit any width — no horizontal overflow on mobile */
+  .bar{flex:1 1 0;border-radius:2px;background:var(--dot-empty);min-width:0;transition:opacity .1s}
   .bar:hover{opacity:.7}
   .bars-legend{display:flex;justify-content:space-between;color:var(--muted);font-size:11px;margin-top:6px}
   .ok{background:var(--ok)} .degraded{background:var(--degraded)} .down{background:var(--down)}
@@ -49,12 +51,21 @@
   .inc{padding:14px 0;border-top:1px solid var(--border)}
   .inc .d{color:var(--muted);font-size:12px}
   a{color:inherit}
+  @media (max-width:520px){
+    .wrap{padding:32px 14px 64px}
+    .comp,.banner{padding:16px}
+    .bars{gap:1px}
+    .wordmark{height:21px}
+    .logo-status{font-size:17px}
+    .comp-top{gap:8px}
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <div class="logo">Minimo <span>Status</span></div>
+    <svg viewBox="0 0 694 114" fill="none" xmlns="http://www.w3.org/2000/svg" class="wordmark" aria-label="Minimo"><path d="M0 110V3.99995H24.8L27 17.3999C30.0667 12.3333 34.6 8.19995 40.6 4.99995C46.6 1.79995 53.5333 0.199951 61.4 0.199951C68.6 0.199951 74.8667 1.79995 80.2 4.99995C85.6667 8.19995 89.8667 12.7999 92.8 18.7999C95.7333 13.4666 100.267 9.06662 106.4 5.59995C112.667 1.99995 119.867 0.199951 128 0.199951C138.933 0.199951 147.667 3.79995 154.2 11C160.733 18.2 164 27.8666 164 40V110H133.2V41.6C133.2 36.9333 131.867 33.2666 129.2 30.6C126.667 27.8 123.2 26.4 118.8 26.4C112.533 26.4 107.4 28.2666 103.4 32C99.4 35.6 97.4 40.2666 97.4 46V110H66.6V41.6C66.6 36.9333 65.2667 33.2666 62.6 30.6C60.0667 27.8 56.6 26.4 52.2 26.4C45.9333 26.4 40.8 28.2666 36.8 32C32.8 35.6 30.8 40.2666 30.8 46V110H0Z" fill="currentColor"/><path d="M213.808 110H183.008V3.99995H213.808V110Z" fill="currentColor"/><path d="M234.18 110V3.99995H258.98L261.58 19C264.513 13.4 269.046 8.86662 275.18 5.39996C281.446 1.93329 288.446 0.199951 296.18 0.199951C307.38 0.199951 316.313 3.79995 322.98 11C329.78 18.2 333.18 27.8666 333.18 40V110H302.38V41.6C302.38 37.0666 300.913 33.4666 297.98 30.7999C295.046 28.1333 291.046 26.8 285.98 26.8C279.98 26.8 274.98 28.6 270.98 32.2C266.98 35.8 264.98 40.4666 264.98 46.2V110H234.18Z" fill="currentColor"/><path d="M382.948 110H352.148V3.99995H382.948V110Z" fill="currentColor"/><path d="M403.32 110V3.99995H428.12L430.32 17.3999C433.387 12.3333 437.92 8.19995 443.92 4.99995C449.92 1.79995 456.854 0.199951 464.72 0.199951C471.92 0.199951 478.187 1.79995 483.52 4.99995C488.987 8.19995 493.187 12.7999 496.12 18.7999C499.054 13.4666 503.587 9.06662 509.72 5.59995C515.987 1.99995 523.187 0.199951 531.32 0.199951C542.254 0.199951 550.987 3.79995 557.52 11C564.054 18.2 567.32 27.8666 567.32 40V110H536.52V41.6C536.52 36.9333 535.187 33.2666 532.52 30.6C529.987 27.8 526.52 26.4 522.12 26.4C515.854 26.4 510.72 28.2666 506.72 32C502.72 35.6 500.72 40.2666 500.72 46V110H469.92V41.6C469.92 36.9333 468.587 33.2666 465.92 30.6C463.387 27.8 459.92 26.4 455.52 26.4C449.254 26.4 444.12 28.2666 440.12 32C436.12 35.6 434.12 40.2666 434.12 46V110H403.32Z" fill="currentColor"/><path d="M637.328 113.6C625.995 113.6 615.995 111.2 607.328 106.4C598.795 101.467 592.195 94.6666 587.528 86C582.995 77.2 580.728 67.2666 580.728 56.2C580.728 45 583.128 35.2 587.928 26.8C592.728 18.2666 599.395 11.7333 607.928 7.19995C616.461 2.53328 626.261 0.199951 637.328 0.199951C648.661 0.199951 658.595 2.59995 667.128 7.39995C675.661 12.1999 682.261 18.8666 686.928 27.4C691.595 35.8 693.928 45.4 693.928 56.2C693.928 67.6666 691.528 77.7333 686.728 86.4C681.928 95.0666 675.261 101.8 666.728 106.6C658.195 111.267 648.395 113.6 637.328 113.6ZM637.328 87.7999C645.061 87.7999 651.261 84.9333 655.928 79.2C660.595 73.4666 662.928 65.8 662.928 56.2C662.928 47 660.595 39.6666 655.928 34.2C651.261 28.7333 645.061 26 637.328 26C629.595 26 623.395 28.7333 618.728 34.2C614.061 39.6666 611.728 47 611.728 56.2C611.728 65.8 614.061 73.4666 618.728 79.2C623.395 84.9333 629.595 87.7999 637.328 87.7999Z" fill="currentColor"/></svg>
+    <span class="logo-status">Status</span>
   </header>
 
   <div class="banner" id="banner">
