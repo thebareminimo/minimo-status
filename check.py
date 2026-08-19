@@ -19,7 +19,7 @@ Data model (committed to the repo, independent of Minimo):
 
 No third-party deps — stdlib only.
 """
-import json, os, sys, time, urllib.request, urllib.error, datetime
+import json, os, sys, time, base64, urllib.request, urllib.error, datetime
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(ROOT, "data")
@@ -48,24 +48,23 @@ def http(method, url, headers=None, body=None, timeout=30):
         return 0, f"__exception__ {e}"
 
 # ---------- probes ----------
-def probe_email():
-    api_key = env("MINIMO_PROD_API_KEY", required=True)
-    server  = env("MAILOSAUR_SERVER_ID", required=True)
-    mkey    = env("MAILOSAUR_APIKEY", required=True)
-    uid     = env("TRANSACTIONAL_TEST_UID_PROD", required=True)
-    run_id  = env("GITHUB_RUN_ID", str(int(time.time())))
-    addr = f"status-email-{run_id}.{server}@mailosaur.net"
-
+def _email_attempt(api_key, server, mkey, uid, tag, poll_secs):
+    """One send + verify. Returns (ok: bool, detail: str)."""
+    addr = f"status-email-{tag}.{server}@mailosaur.net"
     st, body = http("POST", "https://app.minimo.it/api/transactionals",
                     headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
                     body=json.dumps({"recipient": addr, "uid": uid}))
     if st != 200:
-        return "down", f"send HTTP {st}: {body[:200]}"
-
-    # poll Mailosaur for arrival (up to ~90s)
+        return False, f"send HTTP {st}: {body[:150]}"
+    try:
+        sent = json.loads(body).get("sent")
+    except Exception:
+        sent = None
+    if sent in (False, 0):
+        return False, "API returned sent:false"
     search_url = f"https://mailosaur.com/api/messages/search?server={server}"
-    auth = "Basic " + __import__("base64").b64encode(f"{mkey}:".encode()).decode()
-    deadline = time.time() + 90
+    auth = "Basic " + base64.b64encode(f"{mkey}:".encode()).decode()
+    deadline = time.time() + poll_secs
     while time.time() < deadline:
         s, b = http("POST", search_url,
                     headers={"Authorization": auth, "Content-Type": "application/json"},
@@ -75,9 +74,28 @@ def probe_email():
         except Exception:
             items = []
         if items:
-            return "operational", f"delivered in Mailosaur (send {st})"
+            return True, f"delivered in Mailosaur (send {st})"
         time.sleep(10)
-    return "down", "email not received in Mailosaur within 90s"
+    return False, f"not received within {poll_secs}s"
+
+def probe_email():
+    api_key = env("MINIMO_PROD_API_KEY", required=True)
+    server  = env("MAILOSAUR_SERVER_ID", required=True)
+    mkey    = env("MAILOSAUR_APIKEY", required=True)
+    uid     = env("TRANSACTIONAL_TEST_UID_PROD", required=True)
+    run_id  = env("GITHUB_RUN_ID", str(int(time.time())))
+    poll    = int(env("EMAIL_POLL_SECS", "150"))
+    # First attempt with a generous window. A single slow delivery (SES/Mailosaur
+    # latency > window) is a false alarm, so RETRY once before declaring down —
+    # only two failures in a row flip the component red. A real outage still
+    # shows within one run (~5 min).
+    ok, detail = _email_attempt(api_key, server, mkey, uid, f"{run_id}-a", poll)
+    if ok:
+        return "operational", detail
+    ok2, detail2 = _email_attempt(api_key, server, mkey, uid, f"{run_id}-b", 120)
+    if ok2:
+        return "operational", f"delivered on retry ({detail2}); first: {detail}"
+    return "down", f"failed twice — attempt1: {detail}; attempt2: {detail2}"
 
 def probe_whatsapp():
     api_key   = env("MINIMO_PROD_API_KEY", required=True)
