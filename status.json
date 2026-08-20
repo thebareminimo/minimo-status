@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-08-20T04:01:59Z",
+  "updated_at": "2026-08-20T04:15:02Z",
   "overall": "operational",
   "components": [
     {
@@ -8,7 +8,7 @@
       "description": "Transactional email is sent and delivered end-to-end.",
       "status": "operational",
       "uptime_90d": 100.0,
-      "last_check": "2026-08-20T04:01:59Z",
+      "last_check": "2026-08-20T04:15:02Z",
       "history": [
         "operational",
         "operational",
@@ -108,7 +108,7 @@
       "description": "WhatsApp template messages are accepted and dispatched.",
       "status": "operational",
       "uptime_90d": 100.0,
-      "last_check": "2026-08-20T00:14:08Z",
+      "last_check": "2026-08-20T04:15:02Z",
       "history": [
         "operational",
         "operational",
