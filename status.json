@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-08-20T22:11:54Z",
+  "updated_at": "2026-08-20T22:28:26Z",
   "overall": "operational",
   "components": [
     {
@@ -8,7 +8,7 @@
       "description": "Transactional email is sent and delivered end-to-end.",
       "status": "operational",
       "uptime_90d": 100.0,
-      "last_check": "2026-08-20T22:11:54Z",
+      "last_check": "2026-08-20T22:28:26Z",
       "history": [
         "operational",
         "operational",
