@@ -29,6 +29,9 @@ jobs:
           MAILOSAUR_APIKEY: ${{ secrets.MAILOSAUR_APIKEY }}
           TRANSACTIONAL_TEST_UID_PROD: ${{ secrets.TRANSACTIONAL_TEST_UID_PROD }}
           WHATSAPP_TEST_RECIPIENT: ${{ secrets.WHATSAPP_TEST_RECIPIENT }}
+          # Public anon JWT (already in the prod JS bundle) — Supabase health ping only. Not a secret.
+          SUPABASE_URL: https://nelourjougsxqvekwfqt.supabase.co
+          SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5lbG91cmpvdWdzeHF2ZWt3ZnF0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0OTUwNjQsImV4cCI6MjA5NjA3MTA2NH0.pI2pl5S98zDersRoyxlEMCsPaJp-Cp7Z6i_rnTfQEAU
           # WhatsApp only on the 4h cron or a manual run (avoids buzzing a phone every 15 min)
           PROBE_WHATSAPP: ${{ github.event.schedule == '0 */4 * * *' || github.event_name == 'workflow_dispatch' }}
         run: python3 check.py
