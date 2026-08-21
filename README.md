@@ -10,8 +10,13 @@ Minimo/Dokploy outage.
 GitHub Actions (independent of Minimo)                     GitHub Pages (static, independent)
 ────────────────────────────────────────                  ─────────────────────────────────
 check.py every 15 min:                                     index.html  ← fetch status.json
-  • email    → send transactional → verify on Mailosaur    (auto-refresh, stale-detection)
-  • whatsapp → send hello_world (every 4h) → send accepted
+  Core services (shallow GET, every run):                  (auto-refresh, stale-detection,
+    • api    → api.minimo.it/docs 200                        grouped by Core services / Delivery)
+    • webapp → app.minimo.it serving
+    • auth   → Supabase /auth/v1/health
+  Delivery (deep, real messages):
+    • email    → send transactional → verify on Mailosaur
+    • whatsapp → send minimo_status_check (every 4h) → accepted
         │  folds results into ↓
         └──────────────► status.json + data/history.json  ──(commit)──► published
                           Telegram alert only on failure
@@ -24,7 +29,7 @@ check.py every 15 min:                                     index.html  ← fetch
   if the checker itself stops.
 
 ## Files
-- `check.py` — the two synthetic probes + history/uptime rollup (stdlib only).
+- `check.py` — the synthetic probes (3 reachability + 2 delivery) + history/uptime rollup (stdlib only).
 - `.github/workflows/status-monitor.yaml` — schedule + commit + Telegram.
 - `index.html` — the static page (vanilla JS, light/dark, no deps).
 - `status.json` — regenerated every run; the page fetches it.
@@ -32,9 +37,16 @@ check.py every 15 min:                                     index.html  ← fetch
 - `data/incidents.json` — hand-editable incident list shown on the page.
 
 ## Probes
+**Core services** (shallow reachability GET — cheap, no side effects, runs every 15 min):
+- **API** — `api.minimo.it/docs` returns 2xx/3xx.
+- **Web app** — `app.minimo.it` serves (unauth root redirects to signin → still "up").
+- **Authentication** — Supabase GoTrue `/auth/v1/health` for the prod project (uses the
+  public anon key as `apikey`; skips cleanly if `SUPABASE_ANON_KEY` is unset — never false-red).
+
+**Delivery** (deep end-to-end — real messages):
 - **Email** — real end-to-end: send via `app.minimo.it/api/transactionals` to a
   Mailosaur inbox, confirm arrival. True delivery, not just an API 200.
-- **WhatsApp** — send `hello_world` via `api.minimo.it/public/v1/templates/whatsapp/send`
+- **WhatsApp** — send `minimo_status_check` via `api.minimo.it/public/v1/templates/whatsapp/send`
   to a test number; v1 confirms the send is **accepted** (whole auth→template→dispatch
   pipeline). Confirming the Meta `delivered` webhook is a planned v1.1 upgrade.
   Runs every 4h (not every 15 min) so it doesn't buzz a real phone constantly.

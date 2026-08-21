@@ -46,6 +46,9 @@
   .b-ok{background:var(--ok)} .b-degraded{background:var(--degraded)} .b-down{background:var(--down)}
   footer{margin-top:36px;color:var(--muted);font-size:12px;text-align:center;line-height:1.7}
   .stale{background:var(--down-bg);border-color:var(--down)}
+  .cat{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);
+    font-weight:600;margin:24px 2px 10px}
+  .cat:first-child{margin-top:0}
   .incidents{margin-top:32px}
   .incidents h2{font-size:14px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0 0 12px}
   .inc{padding:14px 0;border-top:1px solid var(--border)}
@@ -139,7 +142,15 @@ async function load(){
   // Components
   const host = document.getElementById("components");
   host.innerHTML = "";
+  let lastCat = null;
   (data.components||[]).forEach(c=>{
+    if(c.category && c.category !== lastCat){
+      lastCat = c.category;
+      const h = document.createElement("div");
+      h.className = "cat";
+      h.textContent = c.category;
+      host.appendChild(h);
+    }
     const cls = clsFor(c.status);
     const el = document.createElement("div");
     el.className = "comp";

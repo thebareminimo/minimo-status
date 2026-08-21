@@ -1,16 +1,23 @@
 #!/usr/bin/env python3
 """
 Minimo status checker — runs OUTSIDE Minimo's infra (GitHub Actions), so it stays
-up when Minimo is down. It runs two synthetic probes and folds the results into
+up when Minimo is down. It runs synthetic probes and folds the results into
 the static data the status page reads.
 
-Probes:
+Probes are grouped into two tiers:
+
+  Core services — shallow reachability GETs (cheap, no side effects, every run):
+  - api:      api.minimo.it/docs responds 2xx/3xx.
+  - webapp:   app.minimo.it serves (root redirects to signin → still "up").
+  - auth:     Supabase GoTrue /auth/v1/health for the prod project.
+
+  Delivery — deep end-to-end probes (real messages):
   - email:    send a real transactional via Minimo → verify it arrives in a
               Mailosaur inbox (true end-to-end delivery).
-  - whatsapp: send the `hello_world` template via Minimo's public API → confirm
-              the send is accepted (200 + success). NOTE: this is a *liveness*
-              probe (the whole auth→template→dispatch pipeline). Confirming the
-              Meta `delivered` webhook status is a v1.1 upgrade.
+  - whatsapp: send the `minimo_status_check` template via Minimo's public API →
+              confirm the send is accepted (200/201 + success). NOTE: this is a
+              *liveness* probe (the whole auth→template→dispatch pipeline).
+              Confirming the Meta `delivered` webhook status is a v1.1 upgrade.
 
 Data model (committed to the repo, independent of Minimo):
   data/history.json    { "<component>": { "YYYY-MM-DD": "operational|degraded|down" } }
@@ -122,6 +129,41 @@ def probe_whatsapp():
         ok = False
     return ("operational", f"send accepted (HTTP {st})") if ok else ("down", f"send HTTP {st}: {body[:200]}")
 
+# ---------- reachability probes (Tier 1: shallow GET, no side effects) ----------
+def _http_up(url, headers=None, ok=None, timeout=10, slow=5.0):
+    """GET a URL and classify reachability. urllib follows redirects, so a login
+    redirect that lands on 200 still reads as 'up'. up→operational, slow→degraded,
+    non-ok/unreachable→down."""
+    ok = ok if ok is not None else set(range(200, 400))
+    t = time.time()
+    st, body = http("GET", url, headers=headers, timeout=timeout)
+    dt = time.time() - t
+    if st == 0:
+        return "down", f"unreachable: {body[:120]}"
+    if st not in ok:
+        return "down", f"HTTP {st} in {dt:.2f}s"
+    if dt > slow:
+        return "degraded", f"slow — HTTP {st} in {dt:.2f}s"
+    return "operational", f"HTTP {st} in {dt:.2f}s"
+
+def probe_api():
+    # /docs is a genuinely-200 liveness route (root 404s, health needs auth).
+    return _http_up(env("API_HEALTH_URL", "https://api.minimo.it/docs"))
+
+def probe_webapp():
+    # Unauthenticated root 307-redirects to /api/auth/signin (→200): a served
+    # response means the Next.js app server is up.
+    return _http_up(env("WEBAPP_HEALTH_URL", "https://app.minimo.it/"))
+
+def probe_auth():
+    # Supabase GoTrue health for the prod project. Needs the (public) anon key as
+    # apikey; without it we'd get a 401 and false-red, so skip cleanly instead.
+    base = env("SUPABASE_URL", "https://nelourjougsxqvekwfqt.supabase.co").rstrip("/")
+    key  = env("SUPABASE_ANON_KEY", "")
+    if not key:
+        return "operational", "skipped (SUPABASE_ANON_KEY not set)"
+    return _http_up(base + "/auth/v1/health", headers={"apikey": key})
+
 # ---------- history / rendering ----------
 def load_json(path, default):
     try:
@@ -141,9 +183,13 @@ def build_history_array(days_map):
     uptime = round(100.0 * sum(1 for x in known if x == "operational") / len(known), 2) if known else None
     return arr, uptime
 
+# (id, name, description, probe, category)
 COMPONENTS = [
-    ("email",    "Email delivery",    "Transactional email is sent and delivered end-to-end.", probe_email),
-    ("whatsapp", "WhatsApp delivery", "WhatsApp template messages are accepted and dispatched.", probe_whatsapp),
+    ("api",      "API",               "Minimo's public API responds.",                          probe_api,      "Core services"),
+    ("webapp",   "Web app",           "The Minimo web app is reachable.",                       probe_webapp,   "Core services"),
+    ("auth",     "Authentication",    "Login / session service (Supabase) is up.",              probe_auth,     "Core services"),
+    ("email",    "Email delivery",    "Transactional email is sent and delivered end-to-end.",  probe_email,    "Delivery"),
+    ("whatsapp", "WhatsApp delivery", "WhatsApp template messages are accepted and dispatched.", probe_whatsapp, "Delivery"),
 ]
 
 def truthy(v):
@@ -163,7 +209,7 @@ def main():
     gates = {"whatsapp": truthy(env("PROBE_WHATSAPP", "true"))}
 
     comps_out, overall, failures = [], "operational", []
-    for cid, name, desc, probe in COMPONENTS:
+    for cid, name, desc, probe, category in COMPONENTS:
         if gates.get(cid, True):
             status, detail = probe()
             print(f"[{cid}] {status} — {detail}")
@@ -178,7 +224,7 @@ def main():
             print(f"[{cid}] skipped (gate off) — carrying over '{status}'")
         hist_arr, uptime = build_history_array(history.get(cid, {}))
         comps_out.append({"id": cid, "name": name, "description": desc,
-                          "status": status, "uptime_90d": uptime,
+                          "category": category, "status": status, "uptime_90d": uptime,
                           "last_check": last_check, "history": hist_arr})
         overall = worst(overall, status)
 
