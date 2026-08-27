@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-08-26T23:42:50Z",
+  "updated_at": "2026-08-27T00:58:38Z",
   "overall": "operational",
   "components": [
     {
@@ -9,7 +9,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 100.0,
-      "last_check": "2026-08-26T23:42:50Z",
+      "last_check": "2026-08-27T00:58:38Z",
       "history": [
         null,
         null,
@@ -94,7 +94,7 @@
         null,
         null,
         null,
-        null,
+        "operational",
         "operational",
         "operational",
         "operational",
@@ -110,7 +110,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 100.0,
-      "last_check": "2026-08-26T23:42:50Z",
+      "last_check": "2026-08-27T00:58:38Z",
       "history": [
         null,
         null,
@@ -195,7 +195,7 @@
         null,
         null,
         null,
-        null,
+        "operational",
         "operational",
         "operational",
         "operational",
@@ -211,7 +211,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 100.0,
-      "last_check": "2026-08-26T23:42:50Z",
+      "last_check": "2026-08-27T00:58:38Z",
       "history": [
         null,
         null,
@@ -296,7 +296,7 @@
         null,
         null,
         null,
-        null,
+        "operational",
         "operational",
         "operational",
         "operational",
@@ -312,7 +312,7 @@
       "category": "Delivery",
       "status": "operational",
       "uptime_90d": 100.0,
-      "last_check": "2026-08-26T23:42:50Z",
+      "last_check": "2026-08-27T00:58:38Z",
       "history": [
         "operational",
         "operational",
@@ -504,7 +504,7 @@
         "operational",
         "operational",
         "operational",
-        "operational"
+        null
       ]
     }
   ],
