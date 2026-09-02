@@ -1,15 +1,15 @@
 {
-  "updated_at": "2026-09-02T13:49:07Z",
-  "overall": "operational",
+  "updated_at": "2026-09-02T14:16:27Z",
+  "overall": "down",
   "components": [
     {
       "id": "api",
       "name": "API",
       "description": "Minimo's public API responds.",
       "category": "Core services",
-      "status": "operational",
-      "uptime_90d": 100.0,
-      "last_check": "2026-09-02T13:49:07Z",
+      "status": "down",
+      "uptime_90d": 98.89,
+      "last_check": "2026-09-02T14:16:27Z",
       "history": [
         "operational",
         "operational",
@@ -100,7 +100,7 @@
         "operational",
         "operational",
         "operational",
-        "operational"
+        "down"
       ]
     },
     {
@@ -108,9 +108,9 @@
       "name": "Web app",
       "description": "The Minimo web app is reachable.",
       "category": "Core services",
-      "status": "operational",
-      "uptime_90d": 100.0,
-      "last_check": "2026-09-02T13:49:07Z",
+      "status": "down",
+      "uptime_90d": 98.89,
+      "last_check": "2026-09-02T14:16:27Z",
       "history": [
         "operational",
         "operational",
@@ -201,7 +201,7 @@
         "operational",
         "operational",
         "operational",
-        "operational"
+        "down"
       ]
     },
     {
@@ -211,7 +211,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 98.89,
-      "last_check": "2026-09-02T13:49:07Z",
+      "last_check": "2026-09-02T14:16:27Z",
       "history": [
         "operational",
         "operational",
@@ -312,7 +312,7 @@
       "category": "Delivery",
       "status": "operational",
       "uptime_90d": 100.0,
-      "last_check": "2026-09-02T13:49:07Z",
+      "last_check": "2026-09-02T14:16:27Z",
       "history": [
         "operational",
         "operational",
