@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-01T23:48:55Z",
+  "updated_at": "2026-09-02T00:31:34Z",
   "overall": "operational",
   "components": [
     {
@@ -9,7 +9,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 100.0,
-      "last_check": "2026-09-01T23:48:55Z",
+      "last_check": "2026-09-02T00:31:34Z",
       "history": [
         null,
         null,
@@ -88,7 +88,7 @@
         null,
         null,
         null,
-        null,
+        "operational",
         "operational",
         "operational",
         "operational",
@@ -110,7 +110,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 100.0,
-      "last_check": "2026-09-01T23:48:55Z",
+      "last_check": "2026-09-02T00:31:34Z",
       "history": [
         null,
         null,
@@ -189,7 +189,7 @@
         null,
         null,
         null,
-        null,
+        "operational",
         "operational",
         "operational",
         "operational",
@@ -211,7 +211,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 100.0,
-      "last_check": "2026-09-01T23:48:55Z",
+      "last_check": "2026-09-02T00:31:34Z",
       "history": [
         null,
         null,
@@ -290,7 +290,7 @@
         null,
         null,
         null,
-        null,
+        "operational",
         "operational",
         "operational",
         "operational",
@@ -312,7 +312,7 @@
       "category": "Delivery",
       "status": "operational",
       "uptime_90d": 100.0,
-      "last_check": "2026-09-01T23:48:55Z",
+      "last_check": "2026-09-02T00:31:34Z",
       "history": [
         "operational",
         "operational",
@@ -413,7 +413,7 @@
       "category": "Delivery",
       "status": "operational",
       "uptime_90d": 98.89,
-      "last_check": "2026-09-01T20:11:17Z",
+      "last_check": "2026-09-02T00:31:34Z",
       "history": [
         "operational",
         "operational",
@@ -502,8 +502,8 @@
         "operational",
         "operational",
         "operational",
-        "operational",
         "down",
+        "operational",
         "operational"
       ]
     }
