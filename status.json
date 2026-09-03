@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-02T23:49:29Z",
+  "updated_at": "2026-09-03T00:32:13Z",
   "overall": "operational",
   "components": [
     {
@@ -9,7 +9,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 98.89,
-      "last_check": "2026-09-02T23:49:29Z",
+      "last_check": "2026-09-03T00:32:13Z",
       "history": [
         "operational",
         "operational",
@@ -99,8 +99,8 @@
         "operational",
         "operational",
         "operational",
-        "operational",
-        "down"
+        "down",
+        "operational"
       ]
     },
     {
@@ -110,7 +110,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 98.89,
-      "last_check": "2026-09-02T23:49:29Z",
+      "last_check": "2026-09-03T00:32:13Z",
       "history": [
         "operational",
         "operational",
@@ -200,8 +200,8 @@
         "operational",
         "operational",
         "operational",
-        "operational",
-        "down"
+        "down",
+        "operational"
       ]
     },
     {
@@ -211,7 +211,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 98.89,
-      "last_check": "2026-09-02T23:49:29Z",
+      "last_check": "2026-09-03T00:32:13Z",
       "history": [
         "operational",
         "operational",
@@ -301,8 +301,8 @@
         "operational",
         "operational",
         "operational",
-        "operational",
-        "degraded"
+        "degraded",
+        "operational"
       ]
     },
     {
@@ -312,7 +312,7 @@
       "category": "Delivery",
       "status": "operational",
       "uptime_90d": 100.0,
-      "last_check": "2026-09-02T23:49:29Z",
+      "last_check": "2026-09-03T00:32:13Z",
       "history": [
         "operational",
         "operational",
@@ -413,7 +413,7 @@
       "category": "Delivery",
       "status": "operational",
       "uptime_90d": 98.89,
-      "last_check": "2026-09-02T20:10:54Z",
+      "last_check": "2026-09-03T00:32:13Z",
       "history": [
         "operational",
         "operational",
@@ -501,8 +501,8 @@
         "operational",
         "operational",
         "operational",
-        "operational",
         "down",
+        "operational",
         "operational",
         "operational"
       ]
