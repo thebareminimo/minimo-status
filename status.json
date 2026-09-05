@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-04T23:48:57Z",
+  "updated_at": "2026-09-05T00:29:32Z",
   "overall": "operational",
   "components": [
     {
@@ -9,7 +9,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 98.89,
-      "last_check": "2026-09-04T23:48:57Z",
+      "last_check": "2026-09-05T00:29:32Z",
       "history": [
         "operational",
         "operational",
@@ -97,8 +97,8 @@
         "operational",
         "operational",
         "operational",
-        "operational",
         "down",
+        "operational",
         "operational",
         "operational"
       ]
@@ -110,9 +110,8 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 98.89,
-      "last_check": "2026-09-04T23:48:57Z",
+      "last_check": "2026-09-05T00:29:32Z",
       "history": [
-        "operational",
         "operational",
         "operational",
         "operational",
@@ -201,6 +200,7 @@
         "operational",
         "down",
         "operational",
+        "operational",
         "operational"
       ]
     },
@@ -211,9 +211,8 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 98.89,
-      "last_check": "2026-09-04T23:48:57Z",
+      "last_check": "2026-09-05T00:29:32Z",
       "history": [
-        "operational",
         "operational",
         "operational",
         "operational",
@@ -302,6 +301,7 @@
         "operational",
         "degraded",
         "operational",
+        "operational",
         "operational"
       ]
     },
@@ -312,7 +312,7 @@
       "category": "Delivery",
       "status": "operational",
       "uptime_90d": 100.0,
-      "last_check": "2026-09-04T23:48:57Z",
+      "last_check": "2026-09-05T00:29:32Z",
       "history": [
         "operational",
         "operational",
@@ -413,7 +413,7 @@
       "category": "Delivery",
       "status": "operational",
       "uptime_90d": 98.89,
-      "last_check": "2026-09-04T20:10:33Z",
+      "last_check": "2026-09-05T00:29:32Z",
       "history": [
         "operational",
         "operational",
@@ -499,8 +499,8 @@
         "operational",
         "operational",
         "operational",
-        "operational",
         "down",
+        "operational",
         "operational",
         "operational",
         "operational",
