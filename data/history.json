@@ -437,7 +437,7 @@
     "2026-09-03": "operational",
     "2026-09-04": "operational",
     "2026-09-05": "operational",
-    "2026-09-06": "operational"
+    "2026-09-06": "degraded"
   },
   "auth": {
     "2026-08-21": "operational",

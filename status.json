@@ -1,6 +1,6 @@
 {
-  "updated_at": "2026-09-06T16:15:11Z",
-  "overall": "operational",
+  "updated_at": "2026-09-06T16:35:43Z",
+  "overall": "degraded",
   "components": [
     {
       "id": "api",
@@ -9,7 +9,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 98.89,
-      "last_check": "2026-09-06T16:15:11Z",
+      "last_check": "2026-09-06T16:35:43Z",
       "history": [
         "operational",
         "operational",
@@ -108,9 +108,9 @@
       "name": "Web app",
       "description": "The Minimo web app is reachable.",
       "category": "Core services",
-      "status": "operational",
-      "uptime_90d": 98.89,
-      "last_check": "2026-09-06T16:15:11Z",
+      "status": "degraded",
+      "uptime_90d": 97.78,
+      "last_check": "2026-09-06T16:35:43Z",
       "history": [
         "operational",
         "operational",
@@ -201,7 +201,7 @@
         "operational",
         "operational",
         "operational",
-        "operational"
+        "degraded"
       ]
     },
     {
@@ -211,7 +211,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 98.89,
-      "last_check": "2026-09-06T16:15:11Z",
+      "last_check": "2026-09-06T16:35:43Z",
       "history": [
         "operational",
         "operational",
@@ -312,7 +312,7 @@
       "category": "Delivery",
       "status": "operational",
       "uptime_90d": 100.0,
-      "last_check": "2026-09-06T16:15:11Z",
+      "last_check": "2026-09-06T16:35:43Z",
       "history": [
         "operational",
         "operational",
