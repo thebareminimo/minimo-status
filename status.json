@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-06T23:48:53Z",
+  "updated_at": "2026-09-07T00:33:52Z",
   "overall": "operational",
   "components": [
     {
@@ -9,7 +9,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 98.89,
-      "last_check": "2026-09-06T23:48:53Z",
+      "last_check": "2026-09-07T00:33:52Z",
       "history": [
         "operational",
         "operational",
@@ -95,8 +95,8 @@
         "operational",
         "operational",
         "operational",
-        "operational",
         "down",
+        "operational",
         "operational",
         "operational",
         "operational",
@@ -110,9 +110,8 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 97.78,
-      "last_check": "2026-09-06T23:48:53Z",
+      "last_check": "2026-09-07T00:33:52Z",
       "history": [
-        "operational",
         "operational",
         "operational",
         "operational",
@@ -201,7 +200,8 @@
         "operational",
         "operational",
         "operational",
-        "degraded"
+        "degraded",
+        "operational"
       ]
     },
     {
@@ -211,9 +211,8 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 98.89,
-      "last_check": "2026-09-06T23:48:53Z",
+      "last_check": "2026-09-07T00:33:52Z",
       "history": [
-        "operational",
         "operational",
         "operational",
         "operational",
@@ -302,6 +301,7 @@
         "operational",
         "operational",
         "operational",
+        "operational",
         "operational"
       ]
     },
@@ -312,7 +312,7 @@
       "category": "Delivery",
       "status": "operational",
       "uptime_90d": 100.0,
-      "last_check": "2026-09-06T23:48:53Z",
+      "last_check": "2026-09-07T00:33:52Z",
       "history": [
         "operational",
         "operational",
@@ -413,7 +413,7 @@
       "category": "Delivery",
       "status": "operational",
       "uptime_90d": 98.89,
-      "last_check": "2026-09-06T20:10:15Z",
+      "last_check": "2026-09-07T00:33:52Z",
       "history": [
         "operational",
         "operational",
@@ -497,8 +497,8 @@
         "operational",
         "operational",
         "operational",
-        "operational",
         "down",
+        "operational",
         "operational",
         "operational",
         "operational",
