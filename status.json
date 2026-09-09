@@ -1,6 +1,6 @@
 {
-  "updated_at": "2026-09-09T11:49:31Z",
-  "overall": "operational",
+  "updated_at": "2026-09-09T12:17:02Z",
+  "overall": "down",
   "components": [
     {
       "id": "api",
@@ -9,7 +9,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 98.89,
-      "last_check": "2026-09-09T11:49:31Z",
+      "last_check": "2026-09-09T12:17:02Z",
       "history": [
         "operational",
         "operational",
@@ -110,7 +110,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 97.78,
-      "last_check": "2026-09-09T11:49:31Z",
+      "last_check": "2026-09-09T12:17:02Z",
       "history": [
         "operational",
         "operational",
@@ -211,7 +211,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 98.89,
-      "last_check": "2026-09-09T11:49:31Z",
+      "last_check": "2026-09-09T12:17:02Z",
       "history": [
         "operational",
         "operational",
@@ -312,7 +312,7 @@
       "category": "Delivery",
       "status": "operational",
       "uptime_90d": 100.0,
-      "last_check": "2026-09-09T11:49:31Z",
+      "last_check": "2026-09-09T12:17:02Z",
       "history": [
         "operational",
         "operational",
@@ -411,9 +411,9 @@
       "name": "WhatsApp delivery",
       "description": "WhatsApp template messages are accepted and dispatched.",
       "category": "Delivery",
-      "status": "operational",
-      "uptime_90d": 97.78,
-      "last_check": "2026-09-09T08:15:44Z",
+      "status": "down",
+      "uptime_90d": 96.67,
+      "last_check": "2026-09-09T12:17:02Z",
       "history": [
         "operational",
         "operational",
@@ -504,7 +504,7 @@
         "operational",
         "down",
         "operational",
-        "operational"
+        "down"
       ]
     }
   ],
