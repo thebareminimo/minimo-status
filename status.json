@@ -1,6 +1,6 @@
 {
-  "updated_at": "2026-09-16T13:49:32Z",
-  "overall": "operational",
+  "updated_at": "2026-09-16T14:17:34Z",
+  "overall": "down",
   "components": [
     {
       "id": "api",
@@ -9,7 +9,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 98.89,
-      "last_check": "2026-09-16T13:49:32Z",
+      "last_check": "2026-09-16T14:17:34Z",
       "history": [
         "operational",
         "operational",
@@ -110,7 +110,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 97.78,
-      "last_check": "2026-09-16T13:49:32Z",
+      "last_check": "2026-09-16T14:17:34Z",
       "history": [
         "operational",
         "operational",
@@ -211,7 +211,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 98.89,
-      "last_check": "2026-09-16T13:49:32Z",
+      "last_check": "2026-09-16T14:17:34Z",
       "history": [
         "operational",
         "operational",
@@ -310,9 +310,9 @@
       "name": "Email delivery",
       "description": "Transactional email is sent and delivered end-to-end.",
       "category": "Delivery",
-      "status": "operational",
-      "uptime_90d": 98.89,
-      "last_check": "2026-09-16T13:49:32Z",
+      "status": "down",
+      "uptime_90d": 97.78,
+      "last_check": "2026-09-16T14:17:34Z",
       "history": [
         "operational",
         "operational",
@@ -403,7 +403,7 @@
         "operational",
         "operational",
         "down",
-        "operational"
+        "down"
       ]
     },
     {
