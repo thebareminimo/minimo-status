@@ -55,20 +55,10 @@ def http(method, url, headers=None, body=None, timeout=30):
         return 0, f"__exception__ {e}"
 
 # ---------- probes ----------
-def _email_attempt(api_key, server, mkey, uid, tag, poll_secs):
-    """One send + verify. Returns (ok: bool, detail: str)."""
-    addr = f"status-email-{tag}.{server}@mailosaur.net"
-    st, body = http("POST", "https://app.minimo.it/api/transactionals",
-                    headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-                    body=json.dumps({"recipient": addr, "uid": uid}))
-    if st != 200:
-        return False, f"send HTTP {st}: {body[:150]}"
-    try:
-        sent = json.loads(body).get("sent")
-    except Exception:
-        sent = None
-    if sent in (False, 0):
-        return False, "API returned sent:false"
+def _poll_mailosaur(server, mkey, addr, poll_secs):
+    """Poll a Mailosaur inbox for a message sent to `addr`. Returns True once it
+    arrives within `poll_secs`, else False. This is the GROUND TRUTH for email
+    delivery — independent of what the send endpoint returned."""
     search_url = f"https://mailosaur.com/api/messages/search?server={server}"
     auth = "Basic " + base64.b64encode(f"{mkey}:".encode()).decode()
     deadline = time.time() + poll_secs
@@ -81,9 +71,45 @@ def _email_attempt(api_key, server, mkey, uid, tag, poll_secs):
         except Exception:
             items = []
         if items:
-            return True, f"delivered in Mailosaur (send {st})"
+            return True
         time.sleep(10)
-    return False, f"not received within {poll_secs}s"
+    return False
+
+def _email_attempt(api_key, server, mkey, uid, tag, poll_secs):
+    """One send + verify. Returns (ok: bool, detail: str).
+
+    The send POST to app.minimo.it/api/transactionals intermittently takes
+    >30s to RETURN even though the send actually COMPLETES server-side (the
+    probe email still lands, real customer email keeps flowing). A client
+    read-timeout (HTTP 0) must therefore NEVER by itself mean "down": on a
+    timeout we fall back to the ground truth — did the email actually arrive in
+    Mailosaur? If yes → operational (the endpoint was just slow to respond)."""
+    addr = f"status-email-{tag}.{server}@mailosaur.net"
+    t0 = time.time()
+    # 60s (was 30s): give the endpoint more room to return before we give up on
+    # the response and switch to delivery-based verification.
+    st, body = http("POST", "https://app.minimo.it/api/transactionals",
+                    headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                    body=json.dumps({"recipient": addr, "uid": uid}), timeout=60)
+    send_dt = time.time() - t0
+    if st == 0:
+        # Send response timed out / connection dropped — but the send usually
+        # went through. Verify against Mailosaur before declaring anything down.
+        if _poll_mailosaur(server, mkey, addr, poll_secs):
+            return True, f"delivered despite slow send response ({send_dt:.0f}s, {body[:70]})"
+        return False, f"send timed out ({send_dt:.0f}s, {body[:90]}) AND email not received within {poll_secs}s"
+    # Genuine HTTP error (4xx/5xx) → real failure, keep old behavior.
+    if st != 200:
+        return False, f"send HTTP {st} ({send_dt:.1f}s): {body[:150]}"
+    try:
+        sent = json.loads(body).get("sent")
+    except Exception:
+        sent = None
+    if sent in (False, 0):
+        return False, "API returned sent:false"
+    if _poll_mailosaur(server, mkey, addr, poll_secs):
+        return True, f"delivered in Mailosaur (send {st} in {send_dt:.1f}s)"
+    return False, f"not received within {poll_secs}s (send {st} in {send_dt:.1f}s)"
 
 def probe_email():
     api_key = env("MINIMO_PROD_API_KEY", required=True)
@@ -93,9 +119,9 @@ def probe_email():
     run_id  = env("GITHUB_RUN_ID", str(int(time.time())))
     poll    = int(env("EMAIL_POLL_SECS", "150"))
     # First attempt with a generous window. A single slow delivery (SES/Mailosaur
-    # latency > window) is a false alarm, so RETRY once before declaring down —
-    # only two failures in a row flip the component red. A real outage still
-    # shows within one run (~5 min).
+    # latency > window) OR a slow send RESPONSE is a false alarm, so RETRY once
+    # before declaring down — only two failures in a row flip the component red.
+    # A real outage still shows within one run (~5 min).
     ok, detail = _email_attempt(api_key, server, mkey, uid, f"{run_id}-a", poll)
     if ok:
         return "operational", detail
