@@ -1,6 +1,6 @@
 {
-  "updated_at": "2026-09-22T02:45:24Z",
-  "overall": "down",
+  "updated_at": "2026-09-22T03:19:53Z",
+  "overall": "operational",
   "components": [
     {
       "id": "api",
@@ -9,7 +9,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 98.89,
-      "last_check": "2026-09-22T02:45:24Z",
+      "last_check": "2026-09-22T03:19:53Z",
       "history": [
         "operational",
         "operational",
@@ -110,7 +110,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 97.78,
-      "last_check": "2026-09-22T02:45:24Z",
+      "last_check": "2026-09-22T03:19:53Z",
       "history": [
         "operational",
         "operational",
@@ -209,9 +209,9 @@
       "name": "Authentication",
       "description": "Login / session service (Supabase) is up.",
       "category": "Core services",
-      "status": "down",
+      "status": "operational",
       "uptime_90d": 97.78,
-      "last_check": "2026-09-22T02:45:24Z",
+      "last_check": "2026-09-22T03:19:53Z",
       "history": [
         "operational",
         "operational",
@@ -312,7 +312,7 @@
       "category": "Delivery",
       "status": "operational",
       "uptime_90d": 96.67,
-      "last_check": "2026-09-22T02:45:24Z",
+      "last_check": "2026-09-22T03:19:53Z",
       "history": [
         "operational",
         "operational",
