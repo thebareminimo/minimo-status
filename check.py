@@ -54,6 +54,34 @@ def http(method, url, headers=None, body=None, timeout=30):
     except Exception as e:
         return 0, f"__exception__ {e}"
 
+def retry_until_ok(attempt_fn, attempts=3, delay=4.0):
+    """Retry-then-confirm wrapper shared by every single-sample probe.
+
+    A single failed sample is almost never a real outage: a read-timeout, a
+    response slower than the `slow` threshold, a redeploy mid-flight, or a
+    network blip runner->prod all produce one bad reading. So before declaring a
+    component 'down'/'degraded', re-run its probe up to `attempts` times, a few
+    seconds apart. The FIRST 'operational' sample wins immediately (the earlier
+    reading was a blip). Only if ALL attempts come back non-operational do we
+    report a problem, surfacing the LAST (freshest) observation and how many
+    tries it took. This is the same philosophy the email probe already uses
+    (send + retry once, Mailosaur as ground truth) applied to the shallow probes,
+    so one bad sample never flips a component red.
+
+    `attempt_fn` is a zero-arg callable returning (status, detail)."""
+    last = None
+    for i in range(1, attempts + 1):
+        status, detail = attempt_fn()
+        if status == "operational":
+            if i == 1:
+                return status, detail
+            return status, f"{detail} (recovered on attempt {i}/{attempts})"
+        last = (status, detail)
+        if i < attempts:
+            time.sleep(delay)
+    status, detail = last
+    return status, f"{status} on all {attempts} attempts — last: {detail}"
+
 # ---------- probes ----------
 def _poll_mailosaur(server, mkey, addr, poll_secs):
     """Poll a Mailosaur inbox for a message sent to `addr`. Returns True once it
@@ -130,7 +158,7 @@ def probe_email():
         return "operational", f"delivered on retry ({detail2}); first: {detail}"
     return "down", f"failed twice — attempt1: {detail}; attempt2: {detail2}"
 
-def probe_whatsapp():
+def _whatsapp_attempt():
     api_key   = env("MINIMO_PROD_API_KEY", required=True)
     recipient = env("WHATSAPP_TEST_RECIPIENT", "+393886543634")
     tpl_name  = env("WHATSAPP_TEMPLATE_NAME", "minimo_status_check")
@@ -155,8 +183,18 @@ def probe_whatsapp():
         ok = False
     return ("operational", f"send accepted (HTTP {st})") if ok else ("down", f"send HTTP {st}: {body[:200]}")
 
+def probe_whatsapp():
+    # Retry-then-confirm: a single rejected/slow send (transient 5xx, blip) must
+    # not flip WhatsApp red. Note: retries only happen on FAILURE — a successful
+    # send returns 'operational' on attempt 1, so exactly ONE real message reaches
+    # the test phone in the normal case (no extra buzz). A genuine outage (e.g.
+    # 360dialog credit negative → 422 rejected, undelivered) still confirms 'down'
+    # after 3 consecutive failures. Slightly longer delay since each try hits the
+    # real send pipeline.
+    return retry_until_ok(_whatsapp_attempt, attempts=3, delay=5.0)
+
 # ---------- reachability probes (Tier 1: shallow GET, no side effects) ----------
-def _http_up(url, headers=None, ok=None, timeout=10, slow=5.0):
+def _http_up(url, headers=None, ok=None, timeout=15, slow=5.0):
     """GET a URL and classify reachability. urllib follows redirects, so a login
     redirect that lands on 200 still reads as 'up'. up→operational, slow→degraded,
     non-ok/unreachable→down."""
@@ -174,12 +212,13 @@ def _http_up(url, headers=None, ok=None, timeout=10, slow=5.0):
 
 def probe_api():
     # /docs is a genuinely-200 liveness route (root 404s, health needs auth).
-    return _http_up(env("API_HEALTH_URL", "https://api.minimo.it/docs"))
+    # Retry-then-confirm so one slow/timed-out sample never flips the component.
+    return retry_until_ok(lambda: _http_up(env("API_HEALTH_URL", "https://api.minimo.it/docs")))
 
 def probe_webapp():
     # Unauthenticated root 307-redirects to /api/auth/signin (→200): a served
     # response means the Next.js app server is up.
-    return _http_up(env("WEBAPP_HEALTH_URL", "https://app.minimo.it/"))
+    return retry_until_ok(lambda: _http_up(env("WEBAPP_HEALTH_URL", "https://app.minimo.it/")))
 
 def probe_auth():
     # Supabase GoTrue health for the prod project. Needs the (public) anon key as
@@ -188,7 +227,7 @@ def probe_auth():
     key  = env("SUPABASE_ANON_KEY", "")
     if not key:
         return "operational", "skipped (SUPABASE_ANON_KEY not set)"
-    return _http_up(base + "/auth/v1/health", headers={"apikey": key})
+    return retry_until_ok(lambda: _http_up(base + "/auth/v1/health", headers={"apikey": key}))
 
 # ---------- history / rendering ----------
 def load_json(path, default):
