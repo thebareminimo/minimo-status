@@ -19,6 +19,16 @@ Probes are grouped into two tiers:
               *liveness* probe (the whole auth→template→dispatch pipeline).
               Confirming the Meta `delivered` webhook status is a v1.1 upgrade.
 
+  AI — deep end-to-end probe (real LLM reply):
+  - assistant: ask a dedicated probe assistant on The Bare OÜ (company 25) a
+              knowledge-base question and assert it replies with the KB canary.
+              This exercises BOTH the OpenAI-backed knowledge retrieval
+              (embeddings — searchKnowledge → embedQuery runs before the LLM on
+              every reply) AND the language-model generation. Added after the
+              2026-09-23 outage where the OpenAI account ran out of credits and
+              every company's assistant (incl. Claude-based ones, which use
+              OpenAI for KB embeddings) silently stopped replying, with no alert.
+
 Data model (committed to the repo, independent of Minimo):
   data/history.json    { "<component>": { "YYYY-MM-DD": "operational|degraded|down" } }
   data/incidents.json  [ {title,date,status,impact,body}, ... ]  (hand-editable)
@@ -193,6 +203,69 @@ def probe_whatsapp():
     # real send pipeline.
     return retry_until_ok(_whatsapp_attempt, attempts=3, delay=5.0)
 
+def _assistant_attempt():
+    """One real assistant reply via the playground endpoint. Returns (status, detail).
+
+    POST <base>/v1/assistants/<id>/test with `x-company-id` — the reply engine
+    runs exactly like production: `searchKnowledge` embeds the query via OpenAI
+    (KB retrieval) and THEN the language model generates the answer, so a single
+    call covers both halves that broke on 2026-09-23. Failure modes → DOWN:
+      - HTTP 0 (client timeout / connection dropped) — the reply never came back.
+      - HTTP non-2xx (e.g. 500 when OpenAI embeddings or the LLM throw).
+      - empty / whitespace-only reply.
+      - ASSISTANT_PROBE_EXPECT set but absent from the reply — the LLM answered
+        but the KB canary wasn't retrieved (embeddings/retrieval degraded).
+    The endpoint currently needs no auth (only `x-company-id`); we still send the
+    public API key as Bearer when available so the probe keeps working if the
+    route is guarded later — harmless today."""
+    base    = env("ASSISTANT_PROBE_BASE", "https://api.minimo.it").rstrip("/")
+    company = env("ASSISTANT_PROBE_COMPANY_ID", "25")
+    aid     = env("ASSISTANT_PROBE_ID", "ac50a817-1540-4002-b82b-c7912c6b4d7e")
+    question = env("ASSISTANT_PROBE_QUESTION",
+                   "What is the status probe canary code? Reply with the exact code.")
+    # Canary substring the reply MUST contain (proves KB retrieval worked, not
+    # just that the LLM produced words). Set empty to only assert a non-empty
+    # reply. Case-insensitive.
+    expect  = (env("ASSISTANT_PROBE_EXPECT", "ZEBRA-STATUS-7788") or "").strip()
+    timeout = int(env("ASSISTANT_PROBE_TIMEOUT", "60"))
+    api_key = env("MINIMO_PROD_API_KEY", "")
+
+    headers = {"x-company-id": str(company), "Content-Type": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+    url = f"{base}/v1/assistants/{aid}/test"
+    t0 = time.time()
+    st, body = http("POST", url, headers=headers,
+                    body=json.dumps({"message": question, "messages": []}),
+                    timeout=timeout)
+    dt = time.time() - t0
+    if st == 0:
+        return "down", f"no reply — request failed in {dt:.0f}s: {body[:120]}"
+    if st not in (200, 201):
+        return "down", f"reply HTTP {st} in {dt:.1f}s: {body[:180]}"
+    try:
+        data = json.loads(body)
+        reply = ((data.get("data") or data).get("response") or "")
+    except Exception:
+        return "down", f"unparseable reply (HTTP {st}, {dt:.1f}s): {body[:150]}"
+    if not reply.strip():
+        return "down", f"empty reply (HTTP {st} in {dt:.1f}s)"
+    if expect and expect.lower() not in reply.lower():
+        # LLM answered but the KB canary was not retrieved — the OpenAI-backed
+        # embedding/retrieval path is degraded even though generation works.
+        return "down", (f"KB canary '{expect}' missing from reply "
+                        f"(HTTP {st} in {dt:.1f}s): {reply[:120]}")
+    return "operational", f"replied with canary in {dt:.1f}s (HTTP {st})"
+
+def probe_assistant():
+    # Retry-then-confirm: a single slow/failed reply (transient 5xx, a redeploy
+    # mid-flight, a cold model) must not flip the assistant red. Retries fire
+    # only on FAILURE — a good reply returns 'operational' on attempt 1, so
+    # exactly ONE LLM call (a few tenths of a cent of OpenAI) happens per run in
+    # the normal case. A genuine outage (OpenAI out of credits → embeddings/LLM
+    # throw → 500, or an empty reply) still confirms 'down' after 3 tries.
+    return retry_until_ok(_assistant_attempt, attempts=3, delay=6.0)
+
 # ---------- reachability probes (Tier 1: shallow GET, no side effects) ----------
 def _http_up(url, headers=None, ok=None, timeout=15, slow=5.0):
     """GET a URL and classify reachability. urllib follows redirects, so a login
@@ -255,6 +328,7 @@ COMPONENTS = [
     ("auth",     "Authentication",    "Login / session service (Supabase) is up.",              probe_auth,     "Core services"),
     ("email",    "Email delivery",    "Transactional email is sent and delivered end-to-end.",  probe_email,    "Delivery"),
     ("whatsapp", "WhatsApp delivery", "WhatsApp template messages are accepted and dispatched.", probe_whatsapp, "Delivery"),
+    ("assistant","AI Assistant",      "The AI assistant retrieves its knowledge base and replies.", probe_assistant, "AI"),
 ]
 
 def truthy(v):
@@ -271,7 +345,15 @@ def main():
     # Per-probe gates: WhatsApp sends a real message to a phone, so it runs on a
     # sparser schedule (env PROBE_WHATSAPP, set by the 4h cron / manual run).
     # A skipped component carries over its previous state — no send, no buzz.
-    gates = {"whatsapp": truthy(env("PROBE_WHATSAPP", "true"))}
+    # Both deep probes that cost money / buzz a device run on sparser schedules
+    # (their own crons set PROBE_WHATSAPP / PROBE_ASSISTANT). A skipped component
+    # carries over its previous state — no send, no LLM call, no buzz.
+    # `assistant` defaults OFF: it costs an OpenAI call, and if this file lands
+    # before the workflow's hourly gate is applied it must NOT fire on the every
+    # 15-min email cron. The workflow turns it on explicitly (hourly cron /
+    # manual run) via PROBE_ASSISTANT.
+    gates = {"whatsapp": truthy(env("PROBE_WHATSAPP", "true")),
+             "assistant": truthy(env("PROBE_ASSISTANT", "false"))}
 
     comps_out, overall, failures = [], "operational", []
     for cid, name, desc, probe, category in COMPONENTS:
