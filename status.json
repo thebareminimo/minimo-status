@@ -1,6 +1,6 @@
 {
-  "updated_at": "2026-09-25T18:19:19Z",
-  "overall": "down",
+  "updated_at": "2026-09-25T18:30:09Z",
+  "overall": "operational",
   "components": [
     {
       "id": "api",
@@ -9,7 +9,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 98.89,
-      "last_check": "2026-09-25T18:19:19Z",
+      "last_check": "2026-09-25T18:30:09Z",
       "history": [
         "operational",
         "operational",
@@ -110,7 +110,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 97.78,
-      "last_check": "2026-09-25T18:19:19Z",
+      "last_check": "2026-09-25T18:30:09Z",
       "history": [
         "operational",
         "operational",
@@ -211,7 +211,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 97.78,
-      "last_check": "2026-09-25T18:19:19Z",
+      "last_check": "2026-09-25T18:30:09Z",
       "history": [
         "operational",
         "operational",
@@ -310,9 +310,9 @@
       "name": "Email delivery",
       "description": "Transactional email is sent and delivered end-to-end.",
       "category": "Delivery",
-      "status": "down",
+      "status": "operational",
       "uptime_90d": 95.56,
-      "last_check": "2026-09-25T18:19:19Z",
+      "last_check": "2026-09-25T18:30:09Z",
       "history": [
         "operational",
         "operational",
@@ -514,7 +514,7 @@
       "category": "AI",
       "status": "operational",
       "uptime_90d": 100.0,
-      "last_check": "2026-09-25T17:24:48Z",
+      "last_check": "2026-09-25T18:30:09Z",
       "history": [
         null,
         null,
