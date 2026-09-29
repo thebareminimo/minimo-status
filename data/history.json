@@ -129,7 +129,8 @@
     "2026-09-25": "down",
     "2026-09-26": "operational",
     "2026-09-27": "operational",
-    "2026-09-28": "operational"
+    "2026-09-28": "operational",
+    "2026-09-29": "operational"
   },
   "whatsapp": {
     "2026-08-19": "operational",
@@ -393,7 +394,8 @@
     "2026-09-25": "operational",
     "2026-09-26": "operational",
     "2026-09-27": "operational",
-    "2026-09-28": "operational"
+    "2026-09-28": "operational",
+    "2026-09-29": "operational"
   },
   "webapp": {
     "2026-08-21": "operational",
@@ -525,7 +527,8 @@
     "2026-09-25": "operational",
     "2026-09-26": "operational",
     "2026-09-27": "operational",
-    "2026-09-28": "operational"
+    "2026-09-28": "operational",
+    "2026-09-29": "operational"
   },
   "auth": {
     "2026-08-21": "operational",
@@ -657,7 +660,8 @@
     "2026-09-25": "operational",
     "2026-09-26": "operational",
     "2026-09-27": "operational",
-    "2026-09-28": "operational"
+    "2026-09-28": "operational",
+    "2026-09-29": "operational"
   },
   "assistant": {
     "2026-09-23": "operational",
