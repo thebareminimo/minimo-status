@@ -204,9 +204,9 @@ def probe_whatsapp():
     return retry_until_ok(_whatsapp_attempt, attempts=3, delay=5.0)
 
 def _assistant_attempt():
-    """One real assistant reply via the playground endpoint. Returns (status, detail).
+    """One real assistant reply via the public assistant endpoint. Returns (status, detail).
 
-    POST <base>/v1/assistants/<id>/test with `x-company-id` — the reply engine
+    POST <base>/public/v1/assistants/<id>/test with the API key — the reply engine
     runs exactly like production: `searchKnowledge` embeds the query via OpenAI
     (KB retrieval) and THEN the language model generates the answer, so a single
     call covers both halves that broke on 2026-09-23. Failure modes → DOWN:
@@ -215,11 +215,10 @@ def _assistant_attempt():
       - empty / whitespace-only reply.
       - ASSISTANT_PROBE_EXPECT set but absent from the reply — the LLM answered
         but the KB canary wasn't retrieved (embeddings/retrieval degraded).
-    The endpoint currently needs no auth (only `x-company-id`); we still send the
-    public API key as Bearer when available so the probe keeps working if the
-    route is guarded later — harmless today."""
+    The company is the API key's: the key must belong to the company that owns
+    the probe assistant (The Bare OÜ, company 25). Do not send `x-company-id`:
+    with an API key the backend rejects it (403)."""
     base    = env("ASSISTANT_PROBE_BASE", "https://api.minimo.it").rstrip("/")
-    company = env("ASSISTANT_PROBE_COMPANY_ID", "25")
     aid     = env("ASSISTANT_PROBE_ID", "ac50a817-1540-4002-b82b-c7912c6b4d7e")
     question = env("ASSISTANT_PROBE_QUESTION",
                    "What is the status probe canary code? Reply with the exact code.")
@@ -230,13 +229,13 @@ def _assistant_attempt():
     timeout = int(env("ASSISTANT_PROBE_TIMEOUT", "60"))
     api_key = env("MINIMO_PROD_API_KEY", "")
 
-    headers = {"x-company-id": str(company), "Content-Type": "application/json"}
+    headers = {"Content-Type": "application/json"}
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
-    url = f"{base}/v1/assistants/{aid}/test"
+    url = f"{base}/public/v1/assistants/{aid}/test"
     t0 = time.time()
     st, body = http("POST", url, headers=headers,
-                    body=json.dumps({"message": question, "messages": []}),
+                    body=json.dumps({"message": question}),
                     timeout=timeout)
     dt = time.time() - t0
     if st == 0:
