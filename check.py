@@ -204,20 +204,23 @@ def probe_whatsapp():
     return retry_until_ok(_whatsapp_attempt, attempts=3, delay=5.0)
 
 def _assistant_attempt():
-    """One real assistant reply via the public assistant endpoint. Returns (status, detail).
+    """One real assistant reply. Returns (status, detail).
 
-    POST <base>/public/v1/assistants/<id>/test with the API key — the reply engine
-    runs exactly like production: `searchKnowledge` embeds the query via OpenAI
-    (KB retrieval) and THEN the language model generates the answer, so a single
-    call covers both halves that broke on 2026-09-23. Failure modes → DOWN:
+    Tries the API-key route first (POST <base>/public/v1/assistants/<id>/test,
+    Authorization: Bearer <key>), with a fallback to the dashboard route
+    (POST <base>/v1/assistants/<id>/test with `x-company-id`) while the
+    API-key route is not deployed yet — i.e. only when it answers HTTP 404.
+    Either way, the reply engine runs exactly like production: `searchKnowledge`
+    embeds the query via OpenAI (KB retrieval) and THEN the language model
+    generates the answer, so a single call covers both halves that broke on
+    2026-09-23. Failure modes → DOWN:
       - HTTP 0 (client timeout / connection dropped) — the reply never came back.
       - HTTP non-2xx (e.g. 500 when OpenAI embeddings or the LLM throw).
       - empty / whitespace-only reply.
       - ASSISTANT_PROBE_EXPECT set but absent from the reply — the LLM answered
         but the KB canary wasn't retrieved (embeddings/retrieval degraded).
-    The company is the API key's: the key must belong to the company that owns
-    the probe assistant (The Bare OÜ, company 25). Do not send `x-company-id`:
-    with an API key the backend rejects it (403)."""
+    Only a 404 from the API-key route triggers the fallback: any other status
+    (200/201, 401, 403, 5xx, a timeout) is the final answer for this run."""
     base    = env("ASSISTANT_PROBE_BASE", "https://api.minimo.it").rstrip("/")
     aid     = env("ASSISTANT_PROBE_ID", "ac50a817-1540-4002-b82b-c7912c6b4d7e")
     question = env("ASSISTANT_PROBE_QUESTION",
@@ -229,6 +232,25 @@ def _assistant_attempt():
     timeout = int(env("ASSISTANT_PROBE_TIMEOUT", "60"))
     api_key = env("MINIMO_PROD_API_KEY", "")
 
+    def evaluate(st, body, dt):
+        if st == 0:
+            return "down", f"no reply — request failed in {dt:.0f}s: {body[:120]}"
+        if st not in (200, 201):
+            return "down", f"reply HTTP {st} in {dt:.1f}s: {body[:180]}"
+        try:
+            data = json.loads(body)
+            reply = ((data.get("data") or data).get("response") or "")
+        except Exception:
+            return "down", f"unparseable reply (HTTP {st}, {dt:.1f}s): {body[:150]}"
+        if not reply.strip():
+            return "down", f"empty reply (HTTP {st} in {dt:.1f}s)"
+        if expect and expect.lower() not in reply.lower():
+            # LLM answered but the KB canary was not retrieved — the OpenAI-backed
+            # embedding/retrieval path is degraded even though generation works.
+            return "down", (f"KB canary '{expect}' missing from reply "
+                            f"(HTTP {st} in {dt:.1f}s): {reply[:120]}")
+        return "operational", f"replied with canary in {dt:.1f}s (HTTP {st})"
+
     headers = {"Content-Type": "application/json"}
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
@@ -238,23 +260,22 @@ def _assistant_attempt():
                     body=json.dumps({"message": question}),
                     timeout=timeout)
     dt = time.time() - t0
-    if st == 0:
-        return "down", f"no reply — request failed in {dt:.0f}s: {body[:120]}"
-    if st not in (200, 201):
-        return "down", f"reply HTTP {st} in {dt:.1f}s: {body[:180]}"
-    try:
-        data = json.loads(body)
-        reply = ((data.get("data") or data).get("response") or "")
-    except Exception:
-        return "down", f"unparseable reply (HTTP {st}, {dt:.1f}s): {body[:150]}"
-    if not reply.strip():
-        return "down", f"empty reply (HTTP {st} in {dt:.1f}s)"
-    if expect and expect.lower() not in reply.lower():
-        # LLM answered but the KB canary was not retrieved — the OpenAI-backed
-        # embedding/retrieval path is degraded even though generation works.
-        return "down", (f"KB canary '{expect}' missing from reply "
-                        f"(HTTP {st} in {dt:.1f}s): {reply[:120]}")
-    return "operational", f"replied with canary in {dt:.1f}s (HTTP {st})"
+
+    if st == 404:
+        # Not deployed yet on this environment — fall back to the current
+        # dashboard route exactly as it works today.
+        company = env("ASSISTANT_PROBE_COMPANY_ID", "25")
+        fb_headers = {"x-company-id": str(company), "Content-Type": "application/json"}
+        if api_key:
+            fb_headers["Authorization"] = f"Bearer {api_key}"
+        fb_url = f"{base}/v1/assistants/{aid}/test"
+        t0 = time.time()
+        st, body = http("POST", fb_url, headers=fb_headers,
+                        body=json.dumps({"message": question, "messages": []}),
+                        timeout=timeout)
+        dt = time.time() - t0
+
+    return evaluate(st, body, dt)
 
 def probe_assistant():
     # Retry-then-confirm: a single slow/failed reply (transient 5xx, a redeploy
