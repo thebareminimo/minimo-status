@@ -1,15 +1,15 @@
 {
-  "updated_at": "2026-09-30T12:43:43Z",
-  "overall": "down",
+  "updated_at": "2026-09-30T12:57:06Z",
+  "overall": "operational",
   "components": [
     {
       "id": "api",
       "name": "API",
       "description": "Minimo's public API responds.",
       "category": "Core services",
-      "status": "down",
+      "status": "operational",
       "uptime_90d": 97.78,
-      "last_check": "2026-09-30T12:43:43Z",
+      "last_check": "2026-09-30T12:57:06Z",
       "history": [
         "operational",
         "operational",
@@ -110,7 +110,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 97.78,
-      "last_check": "2026-09-30T12:43:43Z",
+      "last_check": "2026-09-30T12:57:06Z",
       "history": [
         "operational",
         "operational",
@@ -211,7 +211,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 97.78,
-      "last_check": "2026-09-30T12:43:43Z",
+      "last_check": "2026-09-30T12:57:06Z",
       "history": [
         "operational",
         "operational",
@@ -312,7 +312,7 @@
       "category": "Delivery",
       "status": "operational",
       "uptime_90d": 95.56,
-      "last_check": "2026-09-30T12:43:43Z",
+      "last_check": "2026-09-30T12:57:06Z",
       "history": [
         "operational",
         "operational",
