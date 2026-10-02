@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-01T23:50:21Z",
+  "updated_at": "2026-10-02T00:33:24Z",
   "overall": "operational",
   "components": [
     {
@@ -9,7 +9,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 97.78,
-      "last_check": "2026-10-01T23:50:21Z",
+      "last_check": "2026-10-02T00:33:24Z",
       "history": [
         "operational",
         "operational",
@@ -70,7 +70,6 @@
         "operational",
         "operational",
         "operational",
-        "operational",
         "down",
         "operational",
         "operational",
@@ -100,6 +99,7 @@
         "operational",
         "operational",
         "down",
+        "operational",
         "operational"
       ]
     },
@@ -110,9 +110,8 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 97.78,
-      "last_check": "2026-10-01T23:50:21Z",
+      "last_check": "2026-10-02T00:33:24Z",
       "history": [
-        "operational",
         "operational",
         "operational",
         "operational",
@@ -177,6 +176,7 @@
         "operational",
         "operational",
         "degraded",
+        "operational",
         "operational",
         "operational",
         "operational",
@@ -211,9 +211,8 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 97.78,
-      "last_check": "2026-10-01T23:50:21Z",
+      "last_check": "2026-10-02T00:33:24Z",
       "history": [
-        "operational",
         "operational",
         "operational",
         "operational",
@@ -302,6 +301,7 @@
         "operational",
         "operational",
         "operational",
+        "operational",
         "operational"
       ]
     },
@@ -312,7 +312,7 @@
       "category": "Delivery",
       "status": "operational",
       "uptime_90d": 94.44,
-      "last_check": "2026-10-01T23:50:21Z",
+      "last_check": "2026-10-02T00:33:24Z",
       "history": [
         "operational",
         "operational",
@@ -386,7 +386,6 @@
         "operational",
         "operational",
         "operational",
-        "operational",
         "down",
         "down",
         "down",
@@ -403,7 +402,8 @@
         "operational",
         "operational",
         "operational",
-        "down"
+        "down",
+        "operational"
       ]
     },
     {
@@ -413,7 +413,7 @@
       "category": "Delivery",
       "status": "operational",
       "uptime_90d": 95.56,
-      "last_check": "2026-10-01T20:13:12Z",
+      "last_check": "2026-10-02T00:33:24Z",
       "history": [
         "operational",
         "operational",
@@ -472,7 +472,6 @@
         "operational",
         "operational",
         "operational",
-        "operational",
         "down",
         "operational",
         "operational",
@@ -501,6 +500,7 @@
         "operational",
         "operational",
         "down",
+        "operational",
         "operational",
         "operational",
         "operational",
@@ -596,7 +596,6 @@
         null,
         null,
         null,
-        null,
         "operational",
         "operational",
         "operational",
@@ -605,7 +604,8 @@
         "operational",
         "operational",
         "operational",
-        "operational"
+        "operational",
+        null
       ]
     }
   ],
