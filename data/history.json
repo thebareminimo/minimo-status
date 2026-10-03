@@ -134,7 +134,7 @@
     "2026-09-30": "operational",
     "2026-10-01": "down",
     "2026-10-02": "operational",
-    "2026-10-03": "operational"
+    "2026-10-03": "down"
   },
   "whatsapp": {
     "2026-08-19": "operational",
@@ -408,7 +408,7 @@
     "2026-09-30": "down",
     "2026-10-01": "operational",
     "2026-10-02": "operational",
-    "2026-10-03": "operational"
+    "2026-10-03": "down"
   },
   "webapp": {
     "2026-08-21": "operational",
@@ -695,6 +695,6 @@
     "2026-09-30": "operational",
     "2026-10-01": "operational",
     "2026-10-02": "operational",
-    "2026-10-03": "operational"
+    "2026-10-03": "down"
   }
 }
