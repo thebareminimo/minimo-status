@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-03T12:35:51Z",
+  "updated_at": "2026-10-03T13:44:30Z",
   "overall": "down",
   "components": [
     {
@@ -7,9 +7,9 @@
       "name": "API",
       "description": "Minimo's public API responds.",
       "category": "Core services",
-      "status": "down",
+      "status": "operational",
       "uptime_90d": 96.67,
-      "last_check": "2026-10-03T12:35:51Z",
+      "last_check": "2026-10-03T13:44:30Z",
       "history": [
         "operational",
         "operational",
@@ -110,7 +110,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 97.78,
-      "last_check": "2026-10-03T12:35:51Z",
+      "last_check": "2026-10-03T13:44:30Z",
       "history": [
         "operational",
         "operational",
@@ -211,7 +211,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 97.78,
-      "last_check": "2026-10-03T12:35:51Z",
+      "last_check": "2026-10-03T13:44:30Z",
       "history": [
         "operational",
         "operational",
@@ -310,9 +310,9 @@
       "name": "Email delivery",
       "description": "Transactional email is sent and delivered end-to-end.",
       "category": "Delivery",
-      "status": "down",
+      "status": "operational",
       "uptime_90d": 93.33,
-      "last_check": "2026-10-03T12:35:51Z",
+      "last_check": "2026-10-03T13:44:30Z",
       "history": [
         "operational",
         "operational",
@@ -413,7 +413,7 @@
       "category": "Delivery",
       "status": "operational",
       "uptime_90d": 95.56,
-      "last_check": "2026-10-03T08:14:47Z",
+      "last_check": "2026-10-03T13:44:30Z",
       "history": [
         "operational",
         "operational",
