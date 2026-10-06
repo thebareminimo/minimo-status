@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-06T07:36:19Z",
+  "updated_at": "2026-10-06T11:52:00Z",
   "overall": "operational",
   "components": [
     {
@@ -8,8 +8,8 @@
       "description": "Minimo's public API responds.",
       "category": "Core services",
       "status": "operational",
-      "uptime_90d": 97.78,
-      "last_check": "2026-10-06T07:36:19Z",
+      "uptime_90d": 96.67,
+      "last_check": "2026-10-06T11:52:00Z",
       "history": [
         "operational",
         "operational",
@@ -94,7 +94,7 @@
         "operational",
         "operational",
         "operational",
-        "operational",
+        "down",
         "operational",
         "operational",
         "down",
@@ -110,7 +110,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 97.78,
-      "last_check": "2026-10-06T07:36:19Z",
+      "last_check": "2026-10-06T11:52:00Z",
       "history": [
         "operational",
         "operational",
@@ -211,7 +211,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 97.78,
-      "last_check": "2026-10-06T07:36:19Z",
+      "last_check": "2026-10-06T11:52:00Z",
       "history": [
         "operational",
         "operational",
@@ -311,8 +311,8 @@
       "description": "Transactional email is sent and delivered end-to-end.",
       "category": "Delivery",
       "status": "operational",
-      "uptime_90d": 94.44,
-      "last_check": "2026-10-06T07:36:19Z",
+      "uptime_90d": 92.22,
+      "last_check": "2026-10-06T11:52:00Z",
       "history": [
         "operational",
         "operational",
@@ -398,12 +398,12 @@
         "operational",
         "operational",
         "operational",
-        "operational",
+        "down",
         "operational",
         "down",
         "operational",
         "operational",
-        "operational"
+        "down"
       ]
     },
     {
@@ -412,8 +412,8 @@
       "description": "WhatsApp template messages are accepted and dispatched.",
       "category": "Delivery",
       "status": "operational",
-      "uptime_90d": 96.67,
-      "last_check": "2026-10-06T04:14:23Z",
+      "uptime_90d": 95.56,
+      "last_check": "2026-10-06T08:15:59Z",
       "history": [
         "operational",
         "operational",
@@ -495,7 +495,7 @@
         "operational",
         "operational",
         "operational",
-        "operational",
+        "down",
         "operational",
         "operational",
         "operational",
@@ -514,7 +514,7 @@
       "category": "AI",
       "status": "operational",
       "uptime_90d": 92.86,
-      "last_check": "2026-10-06T07:36:19Z",
+      "last_check": "2026-10-06T11:26:32Z",
       "history": [
         null,
         null,
