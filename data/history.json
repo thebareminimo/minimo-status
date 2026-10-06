@@ -132,12 +132,12 @@
     "2026-09-28": "operational",
     "2026-09-29": "operational",
     "2026-09-30": "operational",
-    "2026-10-01": "down",
+    "2026-10-01": "operational",
     "2026-10-02": "operational",
     "2026-10-03": "down",
     "2026-10-04": "operational",
     "2026-10-05": "operational",
-    "2026-10-06": "down"
+    "2026-10-06": "operational"
   },
   "whatsapp": {
     "2026-08-19": "operational",
@@ -268,7 +268,7 @@
     "2026-09-24": "operational",
     "2026-09-25": "operational",
     "2026-09-26": "operational",
-    "2026-09-27": "down",
+    "2026-09-27": "operational",
     "2026-09-28": "operational",
     "2026-09-29": "operational",
     "2026-09-30": "operational",
@@ -411,7 +411,7 @@
     "2026-09-27": "operational",
     "2026-09-28": "operational",
     "2026-09-29": "operational",
-    "2026-09-30": "down",
+    "2026-09-30": "operational",
     "2026-10-01": "operational",
     "2026-10-02": "operational",
     "2026-10-03": "down",
