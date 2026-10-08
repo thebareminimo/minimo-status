@@ -2,8 +2,8 @@
   {
     "title": "Platform disruption: upstream infrastructure provider incident",
     "date": "2026-10-08",
-    "status": "Monitoring - services recovering",
+    "status": "Resolved",
     "impact": "degraded",
-    "body": "Starting around 15:20 UTC on 8 October, our upstream infrastructure provider (Hetzner, Helsinki datacenter) reported a fault affecting the servers that host Minimo. This caused intermittent failures signing in to the dashboard (app.minimo.it), slower API responses, and delayed AI assistant replies. The provider incident has been identified and services are progressively recovering. We are actively monitoring and will post further updates until the platform is fully stable."
+    "body": "Starting around 15:20 UTC on 8 October, our upstream infrastructure provider (Hetzner, Helsinki datacenter) reported a fault affecting the servers that host Minimo. This caused intermittent failures signing in to the dashboard (app.minimo.it), slower API responses, and delayed AI assistant replies. The provider incident has been identified and services have fully recovered. All systems are operational."
   }
 ]
