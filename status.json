@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-09T00:49:38Z",
+  "updated_at": "2026-10-09T01:08:27Z",
   "overall": "operational",
   "components": [
     {
@@ -9,7 +9,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 97.78,
-      "last_check": "2026-10-09T00:49:38Z",
+      "last_check": "2026-10-09T01:08:27Z",
       "history": [
         "operational",
         "operational",
@@ -110,7 +110,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 97.78,
-      "last_check": "2026-10-09T00:49:38Z",
+      "last_check": "2026-10-09T01:08:27Z",
       "history": [
         "operational",
         "operational",
@@ -211,7 +211,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 97.78,
-      "last_check": "2026-10-09T00:49:38Z",
+      "last_check": "2026-10-09T01:08:27Z",
       "history": [
         "operational",
         "operational",
@@ -312,7 +312,7 @@
       "category": "Delivery",
       "status": "operational",
       "uptime_90d": 93.33,
-      "last_check": "2026-10-09T00:49:38Z",
+      "last_check": "2026-10-09T01:08:27Z",
       "history": [
         "operational",
         "operational",
@@ -513,8 +513,8 @@
       "description": "The AI assistant retrieves its knowledge base and replies.",
       "category": "AI",
       "status": "operational",
-      "uptime_90d": 87.5,
-      "last_check": "2026-10-08T23:27:11Z",
+      "uptime_90d": 88.24,
+      "last_check": "2026-10-09T01:08:27Z",
       "history": [
         null,
         null,
@@ -605,7 +605,7 @@
         "operational",
         "operational",
         "down",
-        null
+        "operational"
       ]
     }
   ],
