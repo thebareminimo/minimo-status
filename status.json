@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-13T23:49:58Z",
+  "updated_at": "2026-10-14T00:28:13Z",
   "overall": "down",
   "components": [
     {
@@ -9,7 +9,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 97.78,
-      "last_check": "2026-10-13T23:49:58Z",
+      "last_check": "2026-10-14T00:28:13Z",
       "history": [
         "operational",
         "operational",
@@ -58,7 +58,6 @@
         "operational",
         "operational",
         "operational",
-        "operational",
         "down",
         "operational",
         "operational",
@@ -91,6 +90,7 @@
         "operational",
         "operational",
         "down",
+        "operational",
         "operational",
         "operational",
         "operational",
@@ -110,9 +110,8 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 97.78,
-      "last_check": "2026-10-13T23:49:58Z",
+      "last_check": "2026-10-14T00:28:13Z",
       "history": [
-        "operational",
         "operational",
         "operational",
         "operational",
@@ -165,6 +164,7 @@
         "operational",
         "operational",
         "degraded",
+        "operational",
         "operational",
         "operational",
         "operational",
@@ -211,9 +211,8 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 97.78,
-      "last_check": "2026-10-13T23:49:58Z",
+      "last_check": "2026-10-14T00:28:13Z",
       "history": [
-        "operational",
         "operational",
         "operational",
         "operational",
@@ -302,6 +301,7 @@
         "operational",
         "operational",
         "operational",
+        "operational",
         "operational"
       ]
     },
@@ -312,7 +312,7 @@
       "category": "Delivery",
       "status": "operational",
       "uptime_90d": 92.22,
-      "last_check": "2026-10-13T23:49:58Z",
+      "last_check": "2026-10-14T00:28:13Z",
       "history": [
         "operational",
         "operational",
@@ -374,7 +374,6 @@
         "operational",
         "operational",
         "operational",
-        "operational",
         "down",
         "down",
         "down",
@@ -400,6 +399,7 @@
         "operational",
         "down",
         "down",
+        "operational",
         "operational",
         "operational",
         "operational",
@@ -412,8 +412,8 @@
       "description": "WhatsApp template messages are accepted and dispatched.",
       "category": "Delivery",
       "status": "down",
-      "uptime_90d": 95.56,
-      "last_check": "2026-10-13T20:12:16Z",
+      "uptime_90d": 94.44,
+      "last_check": "2026-10-14T00:28:13Z",
       "history": [
         "operational",
         "operational",
@@ -460,7 +460,6 @@
         "operational",
         "operational",
         "operational",
-        "operational",
         "down",
         "operational",
         "operational",
@@ -504,6 +503,7 @@
         "operational",
         "operational",
         "operational",
+        "down",
         "down"
       ]
     },
@@ -584,7 +584,6 @@
         null,
         null,
         null,
-        null,
         "operational",
         "operational",
         "operational",
@@ -605,7 +604,8 @@
         "operational",
         "operational",
         "operational",
-        "operational"
+        "operational",
+        null
       ]
     }
   ],
