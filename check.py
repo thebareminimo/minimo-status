@@ -194,7 +194,10 @@ def probe_email():
     return "down", f"email not delivered across {attempts} attempts — " + "; ".join(details)
 
 def _whatsapp_attempt():
-    api_key   = env("MINIMO_PROD_API_KEY", required=True)
+    # Dedicated WhatsApp probe key (co36/BeautyGo — a healthy WABA), with a
+    # fallback to the shared email-probe key. Kept separate so the email probe
+    # (MINIMO_PROD_API_KEY, co25) stays green independently of the WhatsApp one.
+    api_key   = env("WHATSAPP_PROD_API_KEY") or env("MINIMO_PROD_API_KEY", required=True)
     recipient = env("WHATSAPP_TEST_RECIPIENT", "+393886543634")
     tpl_name  = env("WHATSAPP_TEMPLATE_NAME", "minimo_status_check")
     tpl_lang  = env("WHATSAPP_TEMPLATE_LANG", "en_US")

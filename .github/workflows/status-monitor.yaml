@@ -26,6 +26,9 @@ jobs:
         id: probe
         env:
           MINIMO_PROD_API_KEY: ${{ secrets.MINIMO_PROD_API_KEY }}
+          # Dedicated WhatsApp probe key (co36/BeautyGo WABA). check.py prefers it,
+          # falling back to MINIMO_PROD_API_KEY when unset.
+          WHATSAPP_PROD_API_KEY: ${{ secrets.WHATSAPP_PROD_API_KEY }}
           MAILOSAUR_SERVER_ID: ${{ secrets.MAILOSAUR_SERVER_ID }}
           MAILOSAUR_APIKEY: ${{ secrets.MAILOSAUR_APIKEY }}
           TRANSACTIONAL_TEST_UID_PROD: ${{ secrets.TRANSACTIONAL_TEST_UID_PROD }}
