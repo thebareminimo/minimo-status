@@ -209,10 +209,13 @@ def _whatsapp_attempt():
     # WABA was swapped 2026-10-16 to a new active account that has no such template,
     # so the probe sent to the active channel 404'd (TEMPLATE_NOT_FOUND). Until a
     # dedicated probe template is approved on the active account, send an existing
-    # APPROVED UTILITY template on it: `client_appointment_reminder` (it) — cheapest
-    # category, delivers cleanly to the test number. Cross-checked approved via the
-    # 360dialog REST templates list on the active WABA.
-    tpl_name  = env("WHATSAPP_TEMPLATE_NAME", "client_appointment_reminder")
+    # APPROVED UTILITY template on it: `client_appointment_reminder_copy` (it) —
+    # cheapest category, delivers cleanly to the test number. It must be a name that
+    # exists ONLY on the active account: a name also present on the retired account
+    # resolves to two families and the send 409s TEMPLATE_IDENTITY_AMBIGUOUS (the
+    # public send carries no sender, so the resolver can't scope it to one account).
+    # `_copy` lives only on the active account; cross-checked approved via 360dialog.
+    tpl_name  = env("WHATSAPP_TEMPLATE_NAME", "client_appointment_reminder_copy")
     tpl_lang  = env("WHATSAPP_TEMPLATE_LANG", "it")
     # Comma-separated BODY params the approved template expects. This template's
     # BODY has 4 positional placeholders; fill them with status-check-flavoured
