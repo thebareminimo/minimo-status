@@ -49,6 +49,18 @@ STATUS_FILE = os.path.join(ROOT, "status.json")
 RANK = {"operational": 0, "degraded": 1, "down": 2}
 HISTORY_DAYS = 90
 
+# Debounced components: don't flip the component to `down` (and don't alert) on
+# the FIRST failed probe — only after N consecutive failed probes. Rationale: the
+# WhatsApp probe sends a PAID template through a third-party (BeautyGo) 360dialog
+# account, so a single run can fail for the CUSTOMER's prepaid-credit balance
+# (`422 ... "lack of payment"`) rather than a Minimo-side outage — and that has
+# flapped the status page 3x this month. A genuine Minimo-pipeline outage persists
+# across runs and still trips the threshold -> red + alert (NOT a no-op-always-green;
+# the fast api/webapp/auth probes still catch an infra outage within ~15 min). Until
+# a Minimo-owned, billing-stable WABA exists (the Twilio migration is not send-ready),
+# this debounce is the agreed mitigation. Threshold is env-overridable.
+DEBOUNCE = {"whatsapp": int(os.environ.get("WHATSAPP_FAIL_THRESHOLD", "3") or "3")}
+
 def env(name, default=None, required=False):
     v = os.environ.get(name, default)
     if required and not v:
@@ -427,6 +439,10 @@ def main():
     history = load_json(HISTORY_FILE, {})
     incidents = load_json(INCIDENTS_FILE, [])
     prev = {c["id"]: c for c in load_json(STATUS_FILE, {}).get("components", [])}
+    # Consecutive-failure streaks for debounced components persist inside
+    # status.json itself (the `fail_streak` field per component) — it is already
+    # committed every run, so no extra file / workflow change is needed.
+    streaks = {cid: (c.get("fail_streak") or 0) for cid, c in prev.items()}
     today = datetime.datetime.now(datetime.timezone.utc).date().isoformat()
     now_iso = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
@@ -447,6 +463,23 @@ def main():
     for cid, name, desc, probe, category in COMPONENTS:
         if gates.get(cid, True):
             status, detail = probe()
+            # Debounce: a component in DEBOUNCE only goes `down` (and alerts) after
+            # N consecutive failed probes. A single transient failure (e.g. a
+            # third-party prepaid-credit blip on the WhatsApp send) reports
+            # `operational` with a "pending" note and does NOT alert, so the page
+            # doesn't flap. A sustained outage trips the threshold and goes red.
+            threshold = DEBOUNCE.get(cid)
+            if threshold:
+                if status == "operational":
+                    streaks[cid] = 0
+                else:
+                    streaks[cid] = streaks.get(cid, 0) + 1
+                    if streaks[cid] < threshold:
+                        print(f"[{cid}] {status} — {detail} "
+                              f"(debounced {streaks[cid]}/{threshold}, not alerting)")
+                        detail = (f"transient failure, not yet confirmed "
+                                  f"({streaks[cid]}/{threshold} consecutive): {detail}")
+                        status = "operational"
             print(f"[{cid}] {status} — {detail}")
             if status != "operational":
                 failures.append(f"{name}: {detail}")
@@ -458,9 +491,14 @@ def main():
             last_check = (prev.get(cid) or {}).get("last_check", now_iso)
             print(f"[{cid}] skipped (gate off) — carrying over '{status}'")
         hist_arr, uptime = build_history_array(history.get(cid, {}))
-        comps_out.append({"id": cid, "name": name, "description": desc,
-                          "category": category, "status": status, "uptime_90d": uptime,
-                          "last_check": last_check, "history": hist_arr})
+        comp = {"id": cid, "name": name, "description": desc,
+                "category": category, "status": status, "uptime_90d": uptime,
+                "last_check": last_check, "history": hist_arr}
+        # Persist the debounce streak on the component (carried over unchanged on a
+        # skipped run, since `streaks` was seeded from the previous status.json).
+        if cid in DEBOUNCE:
+            comp["fail_streak"] = streaks.get(cid, 0)
+        comps_out.append(comp)
         overall = worst(overall, status)
 
     status_doc = {"updated_at": now_iso, "overall": overall,

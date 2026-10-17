@@ -55,6 +55,16 @@ check.py every 15 min:                                     index.html  ← fetch
   template on BeautyGo co36's *active* 360dialog account — when BeautyGo swaps its
   WABA, re-point the name to a template approved on the new account (the API key is
   company-scoped and already routes to the active channel, so it needs no change).
+  **Debounce:** because this send goes through a third-party (BeautyGo) 360dialog
+  account, a single run can fail for the *customer's* prepaid-credit balance
+  (`422 … "lack of payment"`) rather than a Minimo outage. The WhatsApp component
+  therefore only flips to `down` / alerts after **N consecutive** failed probes
+  (`WHATSAPP_FAIL_THRESHOLD`, default 3); a transient failure stays green. A real,
+  sustained Minimo-pipeline outage still trips the threshold and goes red (and the
+  15-min `api`/`webapp`/`auth` probes catch an infra outage immediately regardless).
+  The streak persists in the component's `fail_streak` field in `status.json`. When
+  a Minimo-owned, billing-stable WABA exists (Twilio migration), re-point the probe
+  there and this debounce can be relaxed.
 
 ## Secrets (GitHub → repo settings → Secrets)
 Reused from `web-app-v2`'s existing `transactional-prod-test` action:
