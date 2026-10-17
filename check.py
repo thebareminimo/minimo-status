@@ -265,13 +265,32 @@ def _whatsapp_attempt():
                     headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
                     body=json.dumps(payload))
     ok = False
+    code = ""
     try:
         j = json.loads(body)
         success = j.get("success", (j.get("data") or {}).get("success"))
         ok = st in (200, 201) and bool(success)
+        # The prod error filter strips a failure body to {status, message=<code>}.
+        code = j.get("message", "") if isinstance(j, dict) else ""
     except Exception:
         ok = False
-    return ("operational", f"send accepted (HTTP {st})") if ok else ("down", f"send HTTP {st}: {body[:200]}")
+    if ok:
+        return ("operational", f"send accepted (HTTP {st})")
+    # Third-party-billing classification: a 360dialog prepaid-credit block is the
+    # CUSTOMER's (BeautyGo's) balance, not a Minimo platform outage — the API
+    # tried the send and the provider refused it for non-payment. Don't red the
+    # public status page for that. Match ONLY the SPECIFIC balance code, never a
+    # generic failure: a plain WHATSAPP_SEND_FAILED / auth 403 / 5xx / timeout /
+    # template-not-found stays a real `down` and still counts toward the debounce.
+    # (Inert until the backend emits this code in prod — see minimo-backend
+    # whatsapp-send.exception fix; a payment block currently collapses to the
+    # generic code, which correctly stays `down`.)
+    if code == "WHATSAPP_INSUFFICIENT_BALANCE":
+        return ("operational",
+                "third-party 360dialog prepaid-credit block "
+                f"(WHATSAPP_INSUFFICIENT_BALANCE) — customer balance, not a Minimo "
+                f"outage (HTTP {st})")
+    return ("down", f"send HTTP {st}: {body[:200]}")
 
 def probe_whatsapp():
     # Retry-then-confirm: a single rejected/slow send (transient 5xx, blip) must
