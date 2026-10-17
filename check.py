@@ -14,10 +14,12 @@ Probes are grouped into two tiers:
   Delivery — deep end-to-end probes (real messages):
   - email:    send a real transactional via Minimo → verify it arrives in a
               Mailosaur inbox (true end-to-end delivery).
-  - whatsapp: send the `minimo_status_check` template via Minimo's public API →
+  - whatsapp: send an APPROVED UTILITY template via Minimo's public API →
               confirm the send is accepted (200/201 + success). NOTE: this is a
               *liveness* probe (the whole auth→template→dispatch pipeline).
               Confirming the Meta `delivered` webhook status is a v1.1 upgrade.
+              The template must exist+be approved on BeautyGo co36's ACTIVE
+              360dialog account (see _whatsapp_attempt for why the name changed).
 
   AI — deep end-to-end probe (real LLM reply):
   - assistant: ask a dedicated probe assistant on The Bare OÜ (company 25) a
@@ -197,17 +199,41 @@ def _whatsapp_attempt():
     # Dedicated WhatsApp probe key (co36/BeautyGo — a healthy WABA), with a
     # fallback to the shared email-probe key. Kept separate so the email probe
     # (MINIMO_PROD_API_KEY, co25) stays green independently of the WhatsApp one.
+    # The key is company-scoped (co36); the send endpoint routes it to co36's
+    # PREFERRED active WhatsApp channel, so no key change is needed when the WABA
+    # is swapped — only the template must exist on the active account.
     api_key   = env("WHATSAPP_PROD_API_KEY") or env("MINIMO_PROD_API_KEY", required=True)
     recipient = env("WHATSAPP_TEST_RECIPIENT", "+393886543634")
-    tpl_name  = env("WHATSAPP_TEMPLATE_NAME", "minimo_status_check")
-    tpl_lang  = env("WHATSAPP_TEMPLATE_LANG", "en_US")
-    # Comma-separated BODY params the approved template expects. The dedicated
-    # health-check template `minimo_status_check` (UTILITY, en_US) takes 0 params.
-    params    = [p for p in env("WHATSAPP_TEMPLATE_PARAMS", "").split(",")]
+    # Template choice (2026-10-17): the old dedicated 0-param `minimo_status_check`
+    # (UTILITY, en_US) lives ONLY on co36's RETIRED 360dialog account. BeautyGo's
+    # WABA was swapped 2026-10-16 to a new active account that has no such template,
+    # so the probe sent to the active channel 404'd (TEMPLATE_NOT_FOUND). Until a
+    # dedicated probe template is approved on the active account, send an existing
+    # APPROVED UTILITY template on it: `client_appointment_reminder` (it) — cheapest
+    # category, delivers cleanly to the test number. Cross-checked approved via the
+    # 360dialog REST templates list on the active WABA.
+    tpl_name  = env("WHATSAPP_TEMPLATE_NAME", "client_appointment_reminder")
+    tpl_lang  = env("WHATSAPP_TEMPLATE_LANG", "it")
+    # Comma-separated BODY params the approved template expects. This template's
+    # BODY has 4 positional placeholders; fill them with status-check-flavoured
+    # text so a glance at the test phone reads as a monitor ping.
+    params    = [p for p in env("WHATSAPP_TEMPLATE_PARAMS",
+                                "Minimo Status,Minimo,status check,ogni 4h").split(",")]
+    # The template's URL button is dynamic (beautygo.it/{{1}}); Meta rejects the
+    # send unless the button parameter is supplied. One value, appended as a URL
+    # button component. Empty disables the button component (for a 0-param or
+    # no-button template).
+    btn_param = env("WHATSAPP_TEMPLATE_BUTTON_URL_PARAM", "status")
     template  = {"name": tpl_name, "languageCode": tpl_lang}
+    components = []
     if params and params != [""]:
-        template["components"] = [{"type": "BODY",
-                                   "parameters": [{"type": "text", "text": p} for p in params]}]
+        components.append({"type": "BODY",
+                           "parameters": [{"type": "text", "text": p} for p in params]})
+    if btn_param:
+        components.append({"type": "button", "sub_type": "url", "index": "0",
+                           "parameters": [{"type": "text", "text": btn_param}]})
+    if components:
+        template["components"] = components
     payload = {"recipient": recipient, "type": "template", "template": template}
     st, body = http("POST", "https://api.minimo.it/public/v1/templates/whatsapp/send",
                     headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},

@@ -16,7 +16,7 @@ check.py every 15 min:                                     index.html  ← fetch
     • auth   → Supabase /auth/v1/health
   Delivery (deep, real messages):
     • email    → send transactional → verify on Mailosaur
-    • whatsapp → send minimo_status_check (every 4h) → accepted
+    • whatsapp → send an approved UTILITY template on BeautyGo's active account (every 4h) → accepted
         │  folds results into ↓
         └──────────────► status.json + data/history.json  ──(commit)──► published
                           Telegram alert only on failure
@@ -46,10 +46,15 @@ check.py every 15 min:                                     index.html  ← fetch
 **Delivery** (deep end-to-end — real messages):
 - **Email** — real end-to-end: send via `app.minimo.it/api/transactionals` to a
   Mailosaur inbox, confirm arrival. True delivery, not just an API 200.
-- **WhatsApp** — send `minimo_status_check` via `api.minimo.it/public/v1/templates/whatsapp/send`
+- **WhatsApp** — send an approved UTILITY template via `api.minimo.it/public/v1/templates/whatsapp/send`
   to a test number; v1 confirms the send is **accepted** (whole auth→template→dispatch
   pipeline). Confirming the Meta `delivered` webhook is a planned v1.1 upgrade.
   Runs every 4h (not every 15 min) so it doesn't buzz a real phone constantly.
+  The template name/lang/params default in `check.py` (`WHATSAPP_TEMPLATE_NAME`,
+  `_LANG`, `_PARAMS`, `_BUTTON_URL_PARAM` override them). It MUST be an approved
+  template on BeautyGo co36's *active* 360dialog account — when BeautyGo swaps its
+  WABA, re-point the name to a template approved on the new account (the API key is
+  company-scoped and already routes to the active channel, so it needs no change).
 
 ## Secrets (GitHub → repo settings → Secrets)
 Reused from `web-app-v2`'s existing `transactional-prod-test` action:
