@@ -229,23 +229,26 @@ def _whatsapp_attempt():
     # 360dialog Cloud API wants the MSISDN as plain digits (no leading +).
     to_digits = recipient.strip().lstrip("+").replace(" ", "")
     base      = env("WHATSAPP_360_BASE", "https://waba-v2.360dialog.io").rstrip("/")
-    # Template choice (2026-10-17): `client_cancelled_appointment` (it) — an
-    # APPROVED UTILITY template on the ACTIVE account (cheapest category, single
-    # family on account 2, cross-checked approved via 360dialog). The old
-    # dedicated 0-param `minimo_status_check` lives ONLY on co36's RETIRED account
-    # (account 8) and 404s on the active one, so it is not used here.
-    tpl_name  = env("WHATSAPP_TEMPLATE_NAME", "client_cancelled_appointment")
-    tpl_lang  = env("WHATSAPP_TEMPLATE_LANG", "it")
-    # Comma-separated BODY params the approved template expects. This template's
-    # BODY has 4 positional placeholders; fill them with status-check-flavoured
-    # text so a glance at the test phone reads as a monitor ping.
-    params    = [p for p in env("WHATSAPP_TEMPLATE_PARAMS",
-                                "Minimo Status Check,status monitor,ora,oggi").split(",")]
-    # The template's URL button is dynamic (beautygo.it/{{1}}); Meta rejects the
-    # send unless the button parameter is supplied. One value, appended as a URL
-    # button component. Empty disables the button component (for a 0-param or
-    # no-button template).
-    btn_param = env("WHATSAPP_TEMPLATE_BUTTON_URL_PARAM", "status")
+    # Template choice (2026-10-17): `minimo_status_check` (en_US) — a DEDICATED
+    # health-check UTILITY template registered + APPROVED on BeautyGo co36's
+    # ACTIVE account (account 2 / ch15) specifically for this probe. It has NO
+    # body params and NO button (BODY-only: "Minimo automated health check…"), so
+    # the probe no longer borrows a real business template. This is the durable
+    # fix: the probe is now immune to BeautyGo editing/renaming/retiring any
+    # customer-facing template. (It previously borrowed `client_cancelled_appointment`
+    # (it, UTILITY) — a real appointment-cancelled template — because the old
+    # dedicated template lived only on the RETIRED account 8 and 404'd on the
+    # active one; that dependency is now removed.) Copy reused verbatim from the
+    # known-good account-8 definition so approval was fast.
+    tpl_name  = env("WHATSAPP_TEMPLATE_NAME", "minimo_status_check")
+    tpl_lang  = env("WHATSAPP_TEMPLATE_LANG", "en_US")
+    # The dedicated template has NO body placeholders → no body params. (Overridable
+    # via env for a template that does expect positional BODY params, comma-separated.)
+    params    = [p for p in env("WHATSAPP_TEMPLATE_PARAMS", "").split(",")]
+    # The dedicated template has NO URL button → no button param. (Overridable via
+    # env for a template whose dynamic URL button needs a value; empty disables the
+    # button component.)
+    btn_param = env("WHATSAPP_TEMPLATE_BUTTON_URL_PARAM", "")
     template  = {"name": tpl_name, "language": {"code": tpl_lang}}
     components = []
     if params and params != [""]:
