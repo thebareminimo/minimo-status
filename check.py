@@ -204,6 +204,14 @@ def _whatsapp_attempt():
     # is swapped — only the template must exist on the active account.
     api_key   = env("WHATSAPP_PROD_API_KEY") or env("MINIMO_PROD_API_KEY", required=True)
     recipient = env("WHATSAPP_TEST_RECIPIENT", "+393886543634")
+    # Pin the SENDER to co36's active channel (Meta phone_number_id of the current
+    # WABA). Without it, a no-sender send routes on the RECIPIENT's chat last-used
+    # channel — and the test number was last messaged on the RETIRED account, whose
+    # 360dialog credit is unpaid, so the provider returns 422 "This number is blocked
+    # due to lack of payment on client side." Pinning the active sender forces the
+    # send out on the paid, healthy account. When BeautyGo swaps its WABA, update this
+    # to the new phone_number_id (a stale value fails loudly with WHATSAPP_SENDER_NOT_FOUND).
+    sender    = env("WHATSAPP_SENDER", "1260651913796980")
     # Template choice (2026-10-17): the old dedicated 0-param `minimo_status_check`
     # (UTILITY, en_US) lives ONLY on co36's RETIRED 360dialog account. BeautyGo's
     # WABA was swapped 2026-10-16 to a new active account that has no such template,
@@ -239,6 +247,8 @@ def _whatsapp_attempt():
     if components:
         template["components"] = components
     payload = {"recipient": recipient, "type": "template", "template": template}
+    if sender:
+        payload["sender"] = sender
     st, body = http("POST", "https://api.minimo.it/public/v1/templates/whatsapp/send",
                     headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
                     body=json.dumps(payload))
