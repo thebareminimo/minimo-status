@@ -209,19 +209,20 @@ def _whatsapp_attempt():
     # WABA was swapped 2026-10-16 to a new active account that has no such template,
     # so the probe sent to the active channel 404'd (TEMPLATE_NOT_FOUND). Until a
     # dedicated probe template is approved on the active account, send an existing
-    # APPROVED UTILITY template on it: `client_appointment_reminder_copy` (it) —
-    # cheapest category, delivers cleanly to the test number. It must be a name that
-    # exists ONLY on the active account: a name also present on the retired account
-    # resolves to two families and the send 409s TEMPLATE_IDENTITY_AMBIGUOUS (the
-    # public send carries no sender, so the resolver can't scope it to one account).
-    # `_copy` lives only on the active account; cross-checked approved via 360dialog.
-    tpl_name  = env("WHATSAPP_TEMPLATE_NAME", "client_appointment_reminder_copy")
+    # APPROVED UTILITY template on it: `client_cancelled_appointment` (it) — cheapest
+    # category, delivers cleanly to the test number.
+    # IMPORTANT the name must exist on the active account ONLY: a name also owned on
+    # the retired account resolves to two template families and the send 409s
+    # TEMPLATE_IDENTITY_AMBIGUOUS — the public send carries no sender, so the
+    # resolver can't scope it to one account. `client_cancelled_appointment` has a
+    # single family (active account only); cross-checked approved via 360dialog.
+    tpl_name  = env("WHATSAPP_TEMPLATE_NAME", "client_cancelled_appointment")
     tpl_lang  = env("WHATSAPP_TEMPLATE_LANG", "it")
     # Comma-separated BODY params the approved template expects. This template's
     # BODY has 4 positional placeholders; fill them with status-check-flavoured
     # text so a glance at the test phone reads as a monitor ping.
     params    = [p for p in env("WHATSAPP_TEMPLATE_PARAMS",
-                                "Minimo Status,Minimo,status check,ogni 4h").split(",")]
+                                "Minimo Status Check,status monitor,ora,oggi").split(",")]
     # The template's URL button is dynamic (beautygo.it/{{1}}); Meta rejects the
     # send unless the button parameter is supplied. One value, appended as a URL
     # button component. Empty disables the button component (for a 0-param or
