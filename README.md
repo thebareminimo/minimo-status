@@ -65,6 +65,13 @@ check.py every 15 min:                                     index.html  ← fetch
   The streak persists in the component's `fail_streak` field in `status.json`. When
   a Minimo-owned, billing-stable WABA exists (Twilio migration), re-point the probe
   there and this debounce can be relaxed.
+  **Billing classification:** a send rejected with the *specific* code
+  `WHATSAPP_INSUFFICIENT_BALANCE` (the customer's 360dialog prepaid credit, surfaced
+  by the backend) is treated as informational `operational` — it is the customer's
+  balance, not a Minimo outage, so it must not red the platform status page. Only
+  that exact code is classified; every other failure (generic `WHATSAPP_SEND_FAILED`,
+  auth, 5xx, timeout, template-not-found) stays a real `down` and still counts toward
+  the debounce. (Inert until the backend emits that code in prod.)
 
 ## Secrets (GitHub → repo settings → Secrets)
 Reused from `web-app-v2`'s existing `transactional-prod-test` action:
