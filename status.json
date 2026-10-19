@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-19T04:19:19Z",
+  "updated_at": "2026-10-19T04:32:18Z",
   "overall": "operational",
   "components": [
     {
@@ -9,7 +9,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 97.78,
-      "last_check": "2026-10-19T04:19:19Z",
+      "last_check": "2026-10-19T04:32:18Z",
       "history": [
         "operational",
         "operational",
@@ -110,7 +110,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 97.78,
-      "last_check": "2026-10-19T04:19:19Z",
+      "last_check": "2026-10-19T04:32:18Z",
       "history": [
         "operational",
         "operational",
@@ -211,7 +211,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 97.78,
-      "last_check": "2026-10-19T04:19:19Z",
+      "last_check": "2026-10-19T04:32:18Z",
       "history": [
         "operational",
         "operational",
@@ -312,7 +312,7 @@
       "category": "Delivery",
       "status": "operational",
       "uptime_90d": 92.22,
-      "last_check": "2026-10-19T04:19:19Z",
+      "last_check": "2026-10-19T04:32:18Z",
       "history": [
         "operational",
         "operational",
@@ -515,7 +515,7 @@
       "category": "AI",
       "status": "operational",
       "uptime_90d": 92.59,
-      "last_check": "2026-10-19T03:33:26Z",
+      "last_check": "2026-10-19T04:32:18Z",
       "history": [
         null,
         null,
