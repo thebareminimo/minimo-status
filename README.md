@@ -29,8 +29,10 @@ check.py every 15 min:                                     index.html  ← fetch
   if the checker itself stops.
 
 ## Files
-- `check.py` — the synthetic probes (3 reachability + 2 delivery) + history/uptime rollup (stdlib only).
-- `.github/workflows/status-monitor.yaml` — schedule + commit + Telegram.
+- `check.py` — the public-page probes (3 reachability + 2 delivery + 1 AI engine probe) + history/uptime rollup (stdlib only).
+- `pipeline_probe.py` — **DEV-only** AI-assistant end-to-end *pipeline* probe (synthetic inbound → assert async reply). Not on the public page. See "AI assistant — two complementary probes" below.
+- `.github/workflows/status-monitor.yaml` — public-page schedule + commit + Telegram.
+- `.github/workflows/dev-pipeline-monitor.yaml` — dev pipeline-probe schedule (separate, prod-gated, no page writes).
 - `index.html` — the static page (vanilla JS, light/dark, no deps).
 - `status.json` — regenerated every run; the page fetches it.
 - `data/history.json` — per-component daily status (90-day bars + uptime %).
@@ -66,12 +68,80 @@ check.py every 15 min:                                     index.html  ← fetch
   a Minimo-owned, billing-stable WABA exists (Twilio migration), re-point the probe
   there and this debounce can be relaxed.
 
+## AI assistant — two complementary probes (engine vs pipeline)
+
+The WhatsApp-AI support bot is Minimo's core wedge, and it can break in **two
+structurally different places**. We watch both:
+
+**1. Engine probe — `probe_assistant` in `check.py` (PROD, hourly, on the public page).**
+Hits `POST /v1/assistants/:id/test` synchronously on The Bare OÜ (co25) and asserts
+the reply contains a KB canary. That endpoint calls `handleSupportMessage` directly,
+so it exercises the **reply engine only**: OpenAI KB embeddings + prompt compile +
+LLM generation (the 2026-09-23 OpenAI-out-of-credits failure). It never touches the
+async plumbing — no webhook, no queue, no worker, no persisted row, no dispatch.
+
+**2. Pipeline probe — `pipeline_probe.py` (DEV only, prod-gated, NOT on the public page).**
+`/test` is structurally blind to the real inbound→reply path, which is **async**:
+
+```
+360dialog inbound  →  POST /public/v1/webhooks/whatsapp  (ingest, returns 200)
+                   →  BullMQ whatsapp-webhook-queue       (attempts:1, NO retry)
+                   →  WhatsappWebhookProcessor            (worker, ~5s debounce)
+                   →  assistant.service handleSupportMessage (reply generation)
+                   →  outbound-delivery-tracker.begin     (persist BOT historymessage row)
+                   →  whatsapp-outbound.dispatcher        (send to provider)
+```
+
+That async path is exactly where the **2026-09-22→23 P0** lived: inbound arrived,
+the toggle was ON, and the bot produced **zero replies on every chat with no error**.
+The engine probe stays green through that outage; this one catches it.
+
+`pipeline_probe.py` injects a **synthetic Meta/360dialog-shaped inbound** into the
+**dev** backend for a dedicated test company and then asserts, via the dev database
+(PostgREST), that the async pipeline **persisted an assistant reply row** within N
+seconds. If no reply row appears → the pipeline stalled → the probe fails (exit 1).
+
+**Safety perimeter (hard):**
+- Dev backend (`dev-api.minimo.it`) + the **Company Test (co3)** `minimo_ai` channel only. Never a paying company.
+- Synthetic sender is a **non-routable** MSISDN (`15550001111` — a US `555-000` number that can never be a real WhatsApp account). The pipeline's terminal dispatch does fire a 360dialog call toward it, but it **can never reach a human**.
+- The assertion is on **reply generation** (the persisted `senderType=BOT` row), not on delivery — `sent` vs `failed` at the provider is irrelevant. A reply row proves the pipeline ran all the way to dispatch, which is what silently broke in the P0.
+- **Prod-gated:** targets dev, never writes `status.json`, and does **not** page the prod ops Telegram group. A confirmed stall just fails the GitHub job (native notification). Pointing it at prod / enabling Telegram is a separate later decision.
+
+Coverage summary:
+
+| Stage | engine probe (`/test`) | pipeline probe |
+|-------|:----------------------:|:--------------:|
+| webhook ingest | ✗ | ✓ |
+| BullMQ queue   | ✗ | ✓ |
+| worker drains  | ✗ | ✓ |
+| reply generation (LLM/KB) | ✓ | ✓ |
+| persist `historymessage` row | ✗ | ✓ |
+| dispatch to provider | ✗ | ✓ |
+| **would have caught the 2026-09-22→23 P0** | **no** | **yes** |
+
+Config is env-driven (dev defaults baked in): `PIPELINE_API_BASE`, `PIPELINE_REST_BASE`,
+`PIPELINE_SUPABASE_KEY` (required — dev service_role), `PIPELINE_COMPANY`,
+`PIPELINE_BUSINESS_NUMBER`, `PIPELINE_CHANNEL_ID`, `PIPELINE_SENDER`, `PIPELINE_TIMEOUT`,
+`PIPELINE_ATTEMPTS`, and `PIPELINE_ALERT`/`PIPELINE_TELEGRAM_*` (alerting, off by default).
+Driven by `.github/workflows/dev-pipeline-monitor.yaml` (every 30 min + manual dispatch),
+which is fully separate from `status-monitor.yaml` and never touches the public page.
+
+> **Note:** workflow files can't be pushed by the repo's `repo`-scoped PAT, so
+> `dev-pipeline-monitor.yaml` is added via the GitHub web UI (same as `status-monitor.yaml`).
+> Its verbatim content lives in this repo for review; see the PR that introduced the probe.
+
 ## Secrets (GitHub → repo settings → Secrets)
 Reused from `web-app-v2`'s existing `transactional-prod-test` action:
 `MINIMO_PROD_API_KEY`, `MAILOSAUR_SERVER_ID`, `MAILOSAUR_APIKEY`,
 `TRANSACTIONAL_TEST_UID_PROD`, `TELEGRAM_BOT_TOKEN`,
 `TRANSACTIONAL_TEST_TELEGRAM_CHANNEL`. Optional: `WHATSAPP_TEST_RECIPIENT`
 (defaults to the Andrea test number).
+
+For the **dev pipeline probe** (`dev-pipeline-monitor.yaml`): `PIPELINE_SUPABASE_KEY`
+(required — the **dev** Supabase `service_role` key, used read-only to assert the reply
+row). Optional alerting (off by default): repo variable `PIPELINE_ALERT=true` plus
+secrets `PIPELINE_TELEGRAM_BOT_TOKEN` + `PIPELINE_TELEGRAM_CHAT` (point at a **dev**
+channel, never the prod ops group, until a separate GO).
 
 ## Deploy
 1. Push this repo to `thebareminimo/minimo-status`.
