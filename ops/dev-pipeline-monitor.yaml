@@ -1,0 +1,41 @@
+name: Dev AI pipeline monitor
+
+# DEV-ONLY, prod-gated. Injects a synthetic WhatsApp inbound into the DEV backend
+# for the Company Test (co3) assistant and asserts the async pipeline persists a bot
+# reply. Catches the silent async-pipeline stall class (the 2026-09-22->23 P0) that
+# check.py's /test engine probe is structurally blind to. Runs OUTSIDE Minimo infra
+# (GitHub Actions). Deliberately SEPARATE from status-monitor.yaml: it never writes
+# status.json and never appears on the public status.minimo.it page.
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'    # every 30 min against DEV
+  workflow_dispatch:           # manual run
+
+concurrency:
+  group: dev-pipeline-monitor
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run AI-assistant pipeline probe (dev)
+        id: probe
+        env:
+          # Dev Supabase service_role key — used read-only to assert the reply row.
+          PIPELINE_SUPABASE_KEY: ${{ secrets.PIPELINE_SUPABASE_KEY }}
+          # Alerting OFF until a separate GO (prod-gating). When PIPELINE_ALERT=true,
+          # routes to a DEV telegram target only — never the prod ops group by default.
+          PIPELINE_ALERT: ${{ vars.PIPELINE_ALERT || 'false' }}
+          PIPELINE_TELEGRAM_BOT_TOKEN: ${{ secrets.PIPELINE_TELEGRAM_BOT_TOKEN }}
+          PIPELINE_TELEGRAM_CHAT: ${{ secrets.PIPELINE_TELEGRAM_CHAT }}
+        # Exit 1 on a CONFIRMED stall → the GitHub job fails → native failure
+        # notification to repo admins. (This probe writes nothing to the public page,
+        # so failing the job is the correct dev alert channel.)
+        run: python3 pipeline_probe.py

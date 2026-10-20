@@ -126,9 +126,11 @@ Config is env-driven (dev defaults baked in): `PIPELINE_API_BASE`, `PIPELINE_RES
 Driven by `.github/workflows/dev-pipeline-monitor.yaml` (every 30 min + manual dispatch),
 which is fully separate from `status-monitor.yaml` and never touches the public page.
 
-> **Note:** workflow files can't be pushed by the repo's `repo`-scoped PAT, so
-> `dev-pipeline-monitor.yaml` is added via the GitHub web UI (same as `status-monitor.yaml`).
-> Its verbatim content lives in this repo for review; see the PR that introduced the probe.
+> **Note:** workflow files can't be pushed by the repo's `repo`-scoped PAT, so the
+> live `.github/workflows/dev-pipeline-monitor.yaml` is added via the GitHub web UI
+> (same mechanism as `status-monitor.yaml`). Its verbatim, reviewable copy lives at
+> **`ops/dev-pipeline-monitor.yaml`** — activation is just copying it into
+> `.github/workflows/` and setting the `PIPELINE_SUPABASE_KEY` secret.
 
 ## Secrets (GitHub → repo settings → Secrets)
 Reused from `web-app-v2`'s existing `transactional-prod-test` action:
