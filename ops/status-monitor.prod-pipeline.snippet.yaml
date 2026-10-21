@@ -1,0 +1,53 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# PROD ACTIVATION SNIPPET — AI-assistant end-to-end PIPELINE probe on the public page.
+#
+# This is NOT a standalone workflow. It documents the exact additions to the LIVE
+# `.github/workflows/status-monitor.yaml` that turn the `assistant_pipeline` component
+# (check.py → probe_assistant_pipeline → pipeline_probe.py) ON for the public status page.
+#
+# Why a snippet and not a PR edit: workflow files can't be pushed by the repo's
+# `repo`-scoped PAT (same constraint as dev-pipeline-monitor.yaml), so the live edit is
+# applied via the GitHub web UI or a `workflow`-scoped PAT. The Python integration
+# (check.py + README) ships as a normal PR; this is the last, config-only step.
+#
+# PREREQUISITE (blocking): a dedicated, non-paying `minimo_ai` channel must exist on
+# prod first — active, non-deleted, non-Twilio, bound to assistant ac50a817… —
+# recommended on co25 (Minimo / The Bare OÜ). Without it the synthetic inbound cannot
+# resolve to a safe company and the probe would false-red. See README
+# "Promote the pipeline probe to the public page (prod)".
+#
+# INERT UNTIL ACTIVE: check.py appends the component ONLY when PIPELINE_SUPABASE_KEY is
+# non-empty. If you add these env lines but leave PIPELINE_SUPABASE_KEY_PROD unset, the
+# secret resolves to "" and the component is NOT added — the page stays byte-identical.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# 1) Secrets / vars to create (Settings → Secrets and variables → Actions):
+#      secret  PIPELINE_SUPABASE_KEY_PROD   = prod Supabase service_role JWT (read-only use)
+#      secret  PIPELINE_BUSINESS_NUMBER     = the test channel's business number (digits)
+#      secret  PIPELINE_CHANNEL_ID          = the test channel's channel_id / phone_number_id
+#      var     PIPELINE_COMPANY             = the test company id (e.g. 25)
+
+# 2) Add these lines to the `env:` block of the "Run probes" step in status-monitor.yaml,
+#    alongside the existing MINIMO_PROD_API_KEY / PROBE_WHATSAPP / PROBE_ASSISTANT entries:
+
+          # ── AI-assistant end-to-end pipeline probe (public-page component) ──
+          # Prod service_role, read-only — asserts the persisted BOT reply row.
+          PIPELINE_SUPABASE_KEY: ${{ secrets.PIPELINE_SUPABASE_KEY_PROD }}
+          PIPELINE_API_BASE: https://api.minimo.it
+          PIPELINE_REST_BASE: https://nelourjougsxqvekwfqt.supabase.co/rest/v1
+          PIPELINE_COMPANY: ${{ vars.PIPELINE_COMPANY }}
+          PIPELINE_BUSINESS_NUMBER: ${{ secrets.PIPELINE_BUSINESS_NUMBER }}
+          PIPELINE_CHANNEL_ID: ${{ secrets.PIPELINE_CHANNEL_ID }}
+          # Runs on the same sparse schedule as the engine assistant probe (hourly cron /
+          # manual dispatch): it injects a synthetic inbound + costs one LLM reply.
+          PROBE_PIPELINE: ${{ github.event.schedule == '17 * * * *' || github.event_name == 'workflow_dispatch' }}
+
+# 3) Telegram: NOTHING to add. The component folds into the same `failed` / `summary`
+#    step outputs as every other probe, so the existing "Notify Telegram on failure"
+#    step (TELEGRAM_BOT_TOKEN + TRANSACTIONAL_TEST_TELEGRAM_CHANNEL) alerts on a confirmed
+#    stall automatically. A cross-run debounce (PIPELINE_FAIL_THRESHOLD, default 2) keeps
+#    a one-off async hiccup from flapping the page / paging the ops channel.
+
+# 4) Verify: run `workflow_dispatch` once → the new "AI Assistant (end-to-end)" row should
+#    read `operational`. To prove the alert path, temporarily point PIPELINE_BUSINESS_NUMBER
+#    at a bogus number for two consecutive runs → the row goes `down` and Telegram fires.
