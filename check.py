@@ -66,7 +66,14 @@ HISTORY_DAYS = 90
 # the fast api/webapp/auth probes still catch an infra outage within ~15 min). Until
 # a Minimo-owned, billing-stable WABA exists (the Twilio migration is not send-ready),
 # this debounce is the agreed mitigation. Threshold is env-overridable.
-DEBOUNCE = {"whatsapp": int(os.environ.get("WHATSAPP_FAIL_THRESHOLD", "3") or "3")}
+DEBOUNCE = {"whatsapp": int(os.environ.get("WHATSAPP_FAIL_THRESHOLD", "3") or "3"),
+            # The AI-assistant PIPELINE probe already retries in-run (2 attempts); a
+            # cross-run debounce of 2 adds one more consecutive-failure gate before it
+            # reds the page / fires Telegram, so a one-off async hiccup (a cold model, a
+            # redeploy mid-flight) never flaps the public AI row. A genuine stall persists
+            # across runs and still trips the threshold. Only applies when the component
+            # is active (PIPELINE_SUPABASE_KEY set); harmless otherwise.
+            "assistant_pipeline": int(os.environ.get("PIPELINE_FAIL_THRESHOLD", "2") or "2")}
 
 def env(name, default=None, required=False):
     v = os.environ.get(name, default)
@@ -366,6 +373,29 @@ def probe_assistant():
     # throw → 500, or an empty reply) still confirms 'down' after 3 tries.
     return retry_until_ok(_assistant_attempt, attempts=3, delay=6.0)
 
+def probe_assistant_pipeline():
+    """End-to-end ASYNC-pipeline probe: inject a synthetic inbound and assert the full
+    inbound → queue → worker → reply-gen → persist → dispatch path wrote a BOT reply row.
+
+    This is the ONLY probe that catches the silent async-pipeline stall class — the
+    2026-09-22→23 P0 where inbound arrived, the assistant toggle was ON, and ZERO replies
+    were produced with no error surfaced. The `/test` engine probe above is structurally
+    blind to it: it calls `handleSupportMessage` synchronously and never enqueues, never
+    runs the worker, never persists a `historymessage` row. The two probes are therefore
+    complementary — keep BOTH (the engine probe also asserts the KB canary, catching the
+    OpenAI-embeddings/credits outage; this one asserts the plumbing actually ran).
+
+    Implemented in the sibling `pipeline_probe.py`, driven entirely by PIPELINE_* env
+    (target env + dedicated test company/channel + a service_role key used read-only to
+    confirm the reply row). See that file's header for the hard, non-negotiable safety
+    perimeter: a DEDICATED TEST company, never a paying one; a NON-ROUTABLE synthetic
+    sender; the assertion is on the persisted reply ROW, not on provider delivery.
+
+    This component is appended to COMPONENTS ONLY when PIPELINE_SUPABASE_KEY is set, so
+    the status page is byte-identical until the probe is explicitly activated."""
+    import pipeline_probe
+    return pipeline_probe.probe_pipeline()
+
 # ---------- reachability probes (Tier 1: shallow GET, no side effects) ----------
 def _http_up(url, headers=None, ok=None, timeout=15, slow=5.0):
     """GET a URL and classify reachability. urllib follows redirects, so a login
@@ -431,6 +461,20 @@ COMPONENTS = [
     ("assistant","AI Assistant",      "The AI assistant retrieves its knowledge base and replies.", probe_assistant, "AI"),
 ]
 
+# The end-to-end AI-assistant PIPELINE probe is a CONDITIONAL component: added ONLY when
+# a target is configured (PIPELINE_SUPABASE_KEY present). With no key the component list
+# is unchanged and status.json stays byte-identical — so merging this integration is
+# completely inert until the probe is activated (its PIPELINE_* secrets + the
+# PROBE_PIPELINE gate in the workflow). Once active it folds into the SAME `failed`/
+# `summary` workflow outputs as every other component, so the existing "Notify Telegram
+# on failure" step alerts on a confirmed stall with no new wiring. Activation steps:
+# README "AI assistant — two complementary probes" + ops/status-monitor.prod-pipeline.snippet.yaml.
+if os.environ.get("PIPELINE_SUPABASE_KEY"):
+    COMPONENTS.append(
+        ("assistant_pipeline", "AI Assistant (end-to-end)",
+         "A synthetic message exercises the full inbound → queue → worker → reply → dispatch pipeline and a bot reply is persisted.",
+         probe_assistant_pipeline, "AI"))
+
 def truthy(v):
     return str(v).strip().lower() in ("1", "true", "yes", "on")
 
@@ -457,7 +501,12 @@ def main():
     # 15-min email cron. The workflow turns it on explicitly (hourly cron /
     # manual run) via PROBE_ASSISTANT.
     gates = {"whatsapp": truthy(env("PROBE_WHATSAPP", "true")),
-             "assistant": truthy(env("PROBE_ASSISTANT", "false"))}
+             "assistant": truthy(env("PROBE_ASSISTANT", "false")),
+             # The pipeline probe injects a synthetic inbound + costs one LLM reply, so it
+             # runs on the SAME sparse schedule as the engine probe (hourly cron / manual
+             # dispatch) via PROBE_PIPELINE. Default OFF so it never fires on the every-15-min
+             # email cron. Skipped runs carry over the previous state (no inject, no LLM call).
+             "assistant_pipeline": truthy(env("PROBE_PIPELINE", "false"))}
 
     comps_out, overall, failures = [], "operational", []
     for cid, name, desc, probe, category in COMPONENTS:
