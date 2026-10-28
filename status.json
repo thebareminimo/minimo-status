@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-28T19:10:02Z",
+  "updated_at": "2026-10-28T19:19:21Z",
   "overall": "operational",
   "components": [
     {
@@ -9,7 +9,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 97.78,
-      "last_check": "2026-10-28T19:10:02Z",
+      "last_check": "2026-10-28T19:19:21Z",
       "history": [
         "operational",
         "operational",
@@ -110,7 +110,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 97.78,
-      "last_check": "2026-10-28T19:10:02Z",
+      "last_check": "2026-10-28T19:19:21Z",
       "history": [
         "operational",
         "operational",
@@ -211,7 +211,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 97.78,
-      "last_check": "2026-10-28T19:10:02Z",
+      "last_check": "2026-10-28T19:19:21Z",
       "history": [
         "operational",
         "operational",
@@ -312,7 +312,7 @@
       "category": "Delivery",
       "status": "operational",
       "uptime_90d": 92.22,
-      "last_check": "2026-10-28T19:10:02Z",
+      "last_check": "2026-10-28T19:19:21Z",
       "history": [
         "operational",
         "operational",
@@ -515,7 +515,7 @@
       "category": "AI",
       "status": "operational",
       "uptime_90d": 91.67,
-      "last_check": "2026-10-28T18:24:53Z",
+      "last_check": "2026-10-28T19:19:21Z",
       "history": [
         null,
         null,
@@ -616,7 +616,7 @@
       "category": "AI",
       "status": "operational",
       "uptime_90d": 100.0,
-      "last_check": "2026-10-28T18:24:53Z",
+      "last_check": "2026-10-28T19:19:21Z",
       "history": [
         null,
         null,
@@ -718,7 +718,7 @@
       "category": "AI",
       "status": "operational",
       "uptime_90d": 100.0,
-      "last_check": "2026-10-28T19:10:02Z",
+      "last_check": "2026-10-28T19:19:21Z",
       "history": [
         null,
         null,
@@ -819,7 +819,7 @@
       "category": "AI",
       "status": "operational",
       "uptime_90d": 100.0,
-      "last_check": "2026-10-28T19:10:02Z",
+      "last_check": "2026-10-28T19:19:21Z",
       "history": [
         null,
         null,
