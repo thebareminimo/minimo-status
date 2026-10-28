@@ -38,6 +38,13 @@ Probes are grouped into two tiers:
               every company's assistant (incl. Claude-based ones, which use
               OpenAI for KB embeddings) silently stopped replying, with no alert.
 
+  AI on every channel — where people actually talk to the AI:
+  - ai_whatsapp: synthetic inbound to Minimo's own AI number (co25 ch30) → wait
+              for the AI reply via the public API. Full prod pipeline, hourly.
+  - ai_telegram: @minimoaibot token + webhook health + our endpoint accepts updates.
+  - ai_slack: signed Slack url_verification handshake echoed by the prod endpoint.
+  Each is left off the page until its secret is set.
+
 Data model (committed to the repo, independent of Minimo):
   data/history.json    { "<component>": { "YYYY-MM-DD": "operational|degraded|down" } }
   data/incidents.json  [ {title,date,status,impact,body}, ... ]  (hand-editable)
@@ -45,7 +52,7 @@ Data model (committed to the repo, independent of Minimo):
 
 No third-party deps — stdlib only.
 """
-import json, os, sys, time, base64, urllib.request, urllib.error, datetime
+import json, os, sys, time, base64, hmac, hashlib, urllib.request, urllib.error, datetime
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(ROOT, "data")
@@ -66,7 +73,10 @@ HISTORY_DAYS = 90
 # the fast api/webapp/auth probes still catch an infra outage within ~15 min). Until
 # a Minimo-owned, billing-stable WABA exists (the Twilio migration is not send-ready),
 # this debounce is the agreed mitigation. Threshold is env-overridable.
-DEBOUNCE = {"whatsapp": int(os.environ.get("WHATSAPP_FAIL_THRESHOLD", "3") or "3")}
+DEBOUNCE = {"whatsapp": int(os.environ.get("WHATSAPP_FAIL_THRESHOLD", "3") or "3"),
+            # AI on WhatsApp runs the real LLM: one slow reply mustn't flip the
+            # public row, so it needs 2 failed runs in a row (~2h at the hourly gate).
+            "ai_whatsapp": int(os.environ.get("AI_WHATSAPP_FAIL_THRESHOLD", "2") or "2")}
 
 def env(name, default=None, required=False):
     v = os.environ.get(name, default)
@@ -366,6 +376,258 @@ def probe_assistant():
     # throw → 500, or an empty reply) still confirms 'down' after 3 tries.
     return retry_until_ok(_assistant_attempt, attempts=3, delay=6.0)
 
+# ---------- AI on every channel ----------
+# `assistant` above calls the reply engine synchronously, so it can't see the
+# channel plumbing in front of it. These probes check that the AI is reachable
+# where people actually talk to it.
+#
+# A probe returns ("skip", reason) when it isn't configured (its secret isn't
+# set). A skipped component is left off the page entirely, so merging this code
+# changes nothing until each channel is wired up.
+
+def _digits(s):
+    return "".join(ch for ch in str(s or "") if ch.isdigit())
+
+# Chat id of the probe conversation, cached across attempts within one run.
+_AI_WA_CHAT = {}
+
+def _api_list(body):
+    """Items of a Minimo public list response. The API wraps payloads as
+    {"data": {"data": [...], "pagination": {...}}}; tolerate the bare shape too."""
+    d = json.loads(body)
+    while isinstance(d, dict) and "data" in d:
+        d = d["data"]
+    return d if isinstance(d, list) else []
+
+def _ai_wa_find_chat(base, headers, sender):
+    """Return (chat_id | None, http_status) for the probe sender's conversation.
+    Right after an inject the probe conversation is the most recently active
+    one, so the first page is enough."""
+    if sender in _AI_WA_CHAT:
+        return _AI_WA_CHAT[sender], 200
+    st, body = http("GET", f"{base}/public/v1/whatsapp/conversations?page=1&pageSize=50",
+                    headers=headers, timeout=20)
+    if st != 200:
+        return None, st
+    try:
+        convs = _api_list(body)
+    except Exception:
+        return None, st
+    for conv in convs:
+        if _digits((conv.get("contact") or {}).get("phone")) == sender:
+            _AI_WA_CHAT[sender] = conv.get("chatId")
+            return conv.get("chatId"), 200
+    return None, 200
+
+def _ai_whatsapp_attempt(attempt):
+    """Inject one synthetic inbound WhatsApp message into prod and wait for the
+    AI reply. Returns (status, detail).
+
+    Target: Minimo's own AI number on Meta-direct (The Bare OÜ, company 25,
+    channel 30, responder minimo_ai). It runs the same path as every
+    customer's AI support bot:
+        POST /public/v1/webhooks/whatsapp → ingest + channel routing
+        → whatsapp-webhook-queue → worker → assistant reply → outbound dispatch
+    That async path is where the 2026-09-22/23 outage lived (inbound arrived,
+    zero replies, no error), which the synchronous `assistant` probe can't see.
+
+    Safety: the sender is a non-routable test number (555-000-xxxx), so the
+    reply's final send can never reach a person. Meta rejects it and the row
+    ends `failed`, which is expected. The check is that the AI reply was
+    generated and handed to dispatch, not that it was delivered.
+
+    Read-back uses Minimo's public WhatsApp conversations API with a key that
+    only has the `whatsapp` permission (AI_PROBE_API_KEY). No database access."""
+    base     = env("AI_WA_API_BASE", "https://api.minimo.it").rstrip("/")
+    key      = env("AI_PROBE_API_KEY", "")
+    business = _digits(env("AI_WA_BUSINESS_NUMBER", "34656488897"))
+    pnid     = env("AI_WA_PHONE_NUMBER_ID", "1434458863076380")
+    sender   = _digits(env("AI_WA_SENDER", "15550001111"))
+    timeout  = int(env("AI_WA_TIMEOUT", "150"))
+    if not key:
+        return "skip", "AI_PROBE_API_KEY not set"
+    headers = {"Authorization": f"Bearer {key}"}
+
+    run_id = env("GITHUB_RUN_ID", str(int(time.time())))
+    wamid  = f"wamid.MINIMOSTATUSPROBE{run_id}x{attempt}x{int(time.time())}"
+    payload = {
+        "object": "whatsapp_business_account",
+        "entry": [{
+            "id": "MINIMO_STATUS_PROBE",
+            "changes": [{
+                "field": "messages",
+                "value": {
+                    "messaging_product": "whatsapp",
+                    "metadata": {"display_phone_number": business,
+                                 "phone_number_id": pnid},
+                    "contacts": [{"profile": {"name": "Minimo Status Probe"},
+                                  "wa_id": sender}],
+                    "messages": [{
+                        "from": sender, "id": wamid,
+                        "timestamp": str(int(time.time())), "type": "text",
+                        "text": {"body": "Ciao! Questo è un messaggio automatico di "
+                                         "controllo di status.minimo.it. Rispondi "
+                                         "con un breve saluto."},
+                    }],
+                },
+            }],
+        }],
+    }
+    t0 = time.time()
+    st, body = http("POST", f"{base}/public/v1/webhooks/whatsapp",
+                    headers={"Content-Type": "application/json"},
+                    body=json.dumps(payload), timeout=30)
+    # 200 is necessary but not sufficient: ingest also answers 200 when it drops
+    # a message (e.g. no channel matched). The read-back below is the real check.
+    if st != 200:
+        return "down", f"inbound webhook HTTP {st}: {body[:140]}"
+
+    inbound_id, deadline = None, t0 + timeout
+    while time.time() < deadline:
+        time.sleep(6)
+        chat_id, cst = _ai_wa_find_chat(base, headers, sender)
+        if cst in (401, 403):
+            return "skip", f"AI_PROBE_API_KEY rejected by the conversations API (HTTP {cst})"
+        if not chat_id:
+            continue
+        mst, mbody = http("GET", f"{base}/public/v1/whatsapp/conversations/"
+                                 f"{chat_id}/messages?page=1&pageSize=10",
+                          headers=headers, timeout=20)
+        if mst != 200:
+            continue
+        try:
+            msgs = _api_list(mbody)
+        except Exception:
+            continue
+        for m in msgs:
+            if m.get("wamid") == wamid:
+                inbound_id = m.get("id")
+        if inbound_id is None:
+            continue
+        replies = [m for m in msgs
+                   if m.get("direction") == "outbound" and (m.get("id") or 0) > inbound_id
+                   and (m.get("text") or "").strip()]
+        if replies:
+            r = min(replies, key=lambda m: m.get("id") or 0)
+            snippet = (r.get("text") or "")[:60].replace("\n", " ")
+            return "operational", (f"AI replied in {time.time() - t0:.0f}s "
+                                   f"(send status {r.get('status')}): \"{snippet}\"")
+    if inbound_id is None:
+        return "down", (f"synthetic inbound not stored within {timeout}s "
+                        f"(webhook answered 200 but the message never reached the inbox)")
+    return "down", (f"inbound stored but NO AI reply within {timeout}s "
+                    f"(queue / worker / AI stalled)")
+
+def probe_ai_whatsapp():
+    # Each attempt injects a fresh message, so a retry also re-runs the AI once.
+    # 2 attempts inside a run, plus the cross-run DEBOUNCE, keep a single slow
+    # LLM call from flipping the public row.
+    last = None
+    for i in (1, 2):
+        status, detail = _ai_whatsapp_attempt(i)
+        if status in ("operational", "skip"):
+            if i > 1 and status == "operational":
+                detail += " (recovered on attempt 2/2)"
+            return status, detail
+        last = (status, detail)
+        if i == 1:
+            time.sleep(5)
+    return last[0], f"{last[0]} on both attempts — last: {last[1]}"
+
+def _ai_telegram_attempt():
+    """Telegram → Minimo's AI bot. Returns (status, detail).
+
+    No company of ours has a Telegram chat linked to Mo, so this can't make Mo
+    answer a real message. It checks the connection instead, which is what
+    breaks after a deploy or an env change:
+      1. the bot token works (getMe);
+      2. Telegram's webhook points at api.minimo.it, and Telegram has no fresh
+         delivery error with updates piling up (getWebhookInfo);
+      3. our endpoint accepts an update on that exact URL, which proves the
+         route is up and the path secret matches TELEGRAM_WEBHOOK_SECRET in
+         prod. The update comes "from a bot", which the service ignores, so
+         nothing runs and nobody gets a message."""
+    token = env("TELEGRAM_MO_BOT_TOKEN", "")
+    if not token:
+        return "skip", "TELEGRAM_MO_BOT_TOKEN not set"
+    expect = env("AI_TELEGRAM_WEBHOOK_BASE",
+                 "https://api.minimo.it/public/v1/webhooks/telegram/")
+    tg = f"https://api.telegram.org/bot{token}"
+
+    st, body = http("GET", f"{tg}/getMe", timeout=15)
+    if st != 200:
+        return "down", f"bot token rejected by Telegram (getMe HTTP {st})"
+    username = (json.loads(body).get("result") or {}).get("username", "?")
+
+    st, body = http("GET", f"{tg}/getWebhookInfo", timeout=15)
+    if st != 200:
+        return "down", f"getWebhookInfo HTTP {st}"
+    info = json.loads(body).get("result") or {}
+    url = info.get("url") or ""
+    if not url.startswith(expect):
+        where = url.split("/telegram/")[0] if url else "nowhere"
+        return "down", f"@{username} webhook points to {where}, not Minimo"
+    pending = int(info.get("pending_update_count") or 0)
+    err_age = time.time() - float(info.get("last_error_date") or 0)
+    if err_age < 1200 and pending > 0:
+        return "down", (f"Telegram can't deliver to Minimo: {pending} updates pending, "
+                        f"last error {err_age / 60:.0f} min ago: "
+                        f"{(info.get('last_error_message') or '')[:100]}")
+
+    ping = {"update_id": 0, "message": {
+        "message_id": 0, "date": int(time.time()),
+        "chat": {"id": 0, "type": "private"},
+        "from": {"id": 0, "is_bot": True, "first_name": "status.minimo.it"},
+        "text": "status probe"}}
+    t = time.time()
+    st, body = http("POST", url, headers={"Content-Type": "application/json"},
+                    body=json.dumps(ping), timeout=20)
+    dt = time.time() - t
+    if st == 403:
+        return "down", "Minimo rejected Telegram's webhook secret (403): secret drifted"
+    if st != 200:
+        return "down", f"Minimo's Telegram webhook answered HTTP {st} in {dt:.1f}s: {body[:100]}"
+    if pending > 50:
+        return "degraded", f"@{username} connected, but {pending} updates are queued at Telegram"
+    return "operational", f"@{username} connected, webhook accepts updates ({dt:.1f}s)"
+
+def probe_ai_telegram():
+    return retry_until_ok(_ai_telegram_attempt, attempts=3, delay=5.0)
+
+def _ai_slack_attempt():
+    """Slack → Minimo's AI app ("Mo"). Returns (status, detail).
+
+    No Slack workspace has Mo installed yet, so there's no conversation to test.
+    It checks the connection instead: it sends Slack's own url_verification
+    handshake, signed the way Slack signs it, to the prod events endpoint. A
+    correct echo proves the endpoint is up and SLACK_SIGNING_SECRET in prod
+    matches the Slack app. Nothing is posted anywhere."""
+    secret = env("SLACK_SIGNING_SECRET", "")
+    if not secret:
+        return "skip", "SLACK_SIGNING_SECRET not set"
+    url = env("AI_SLACK_EVENTS_URL", "https://api.minimo.it/public/v1/webhooks/slack/events")
+    challenge = f"status-probe-{int(time.time())}"
+    raw = json.dumps({"token": "status-probe", "challenge": challenge,
+                      "type": "url_verification"})
+    ts = str(int(time.time()))
+    sig = "v0=" + hmac.new(secret.encode(), f"v0:{ts}:{raw}".encode(),
+                           hashlib.sha256).hexdigest()
+    t = time.time()
+    st, body = http("POST", url, body=raw, timeout=20, headers={
+        "Content-Type": "application/json",
+        "X-Slack-Request-Timestamp": ts, "X-Slack-Signature": sig})
+    dt = time.time() - t
+    if st == 403:
+        return "down", "Minimo rejected a correctly signed Slack event (403): signing secret drifted"
+    if st != 200:
+        return "down", f"Slack events endpoint HTTP {st} in {dt:.1f}s: {body[:100]}"
+    if challenge not in body:
+        return "down", f"Slack handshake not echoed (HTTP 200): {body[:100]}"
+    return "operational", f"signed Slack handshake verified ({dt:.1f}s)"
+
+def probe_ai_slack():
+    return retry_until_ok(_ai_slack_attempt, attempts=3, delay=5.0)
+
 # ---------- reachability probes (Tier 1: shallow GET, no side effects) ----------
 def _http_up(url, headers=None, ok=None, timeout=15, slow=5.0):
     """GET a URL and classify reachability. urllib follows redirects, so a login
@@ -429,6 +691,9 @@ COMPONENTS = [
     ("email",    "Email delivery",    "Transactional email is sent and delivered end-to-end.",  probe_email,    "Delivery"),
     ("whatsapp", "WhatsApp delivery", "WhatsApp template messages are accepted and dispatched.", probe_whatsapp, "Delivery"),
     ("assistant","AI Assistant",      "The AI assistant retrieves its knowledge base and replies.", probe_assistant, "AI"),
+    ("ai_whatsapp", "AI on WhatsApp", "A WhatsApp message to Minimo's AI number gets an AI reply, end to end.", probe_ai_whatsapp, "AI"),
+    ("ai_telegram", "AI on Telegram", "Telegram messages reach Minimo's AI bot.",                 probe_ai_telegram, "AI"),
+    ("ai_slack",    "AI on Slack",    "Slack events reach Minimo's AI app.",                      probe_ai_slack,    "AI"),
 ]
 
 def truthy(v):
@@ -456,13 +721,20 @@ def main():
     # before the workflow's hourly gate is applied it must NOT fire on the every
     # 15-min email cron. The workflow turns it on explicitly (hourly cron /
     # manual run) via PROBE_ASSISTANT.
+    # AI on WhatsApp runs the real LLM, so it shares the assistant's hourly gate.
+    # AI on Telegram / Slack send nothing and cost nothing: they run every time.
     gates = {"whatsapp": truthy(env("PROBE_WHATSAPP", "true")),
-             "assistant": truthy(env("PROBE_ASSISTANT", "false"))}
+             "assistant": truthy(env("PROBE_ASSISTANT", "false")),
+             "ai_whatsapp": truthy(env("PROBE_ASSISTANT", "false"))}
 
     comps_out, overall, failures = [], "operational", []
     for cid, name, desc, probe, category in COMPONENTS:
         if gates.get(cid, True):
             status, detail = probe()
+            if status == "skip":
+                # Not configured: leave the component off the page entirely.
+                print(f"[{cid}] not configured — {detail}")
+                continue
             # Debounce: a component in DEBOUNCE only goes `down` (and alerts) after
             # N consecutive failed probes. A single transient failure (e.g. a
             # third-party prepaid-credit blip on the WhatsApp send) reports
@@ -487,6 +759,9 @@ def main():
             days[today] = worst(days.get(today, "operational"), status)  # worst-of-day
             last_check = now_iso
         else:
+            if cid not in prev:
+                # Never published yet (e.g. a new probe before its first gated run).
+                continue
             status = (prev.get(cid) or {}).get("status", "unknown")
             last_check = (prev.get(cid) or {}).get("last_check", now_iso)
             print(f"[{cid}] skipped (gate off) — carrying over '{status}'")
