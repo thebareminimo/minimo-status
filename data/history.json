@@ -852,5 +852,8 @@
   },
   "ai_slack": {
     "2026-10-28": "operational"
+  },
+  "ai_whatsapp": {
+    "2026-10-28": "operational"
   }
 }
