@@ -80,7 +80,9 @@ so it exercises the **reply engine only**: OpenAI KB embeddings + prompt compile
 LLM generation (the 2026-09-23 OpenAI-out-of-credits failure). It never touches the
 async plumbing — no webhook, no queue, no worker, no persisted row, no dispatch.
 
-**2. Pipeline probe — `pipeline_probe.py` (DEV only, prod-gated, NOT on the public page).**
+**2. Pipeline probe — `pipeline_probe.py` (standalone DEV workflow today; can now fold
+into the public page as the `assistant_pipeline` component in `check.py` — see "Promote
+to the public page" below).**
 `/test` is structurally blind to the real inbound→reply path, which is **async**:
 
 ```
@@ -132,6 +134,42 @@ which is fully separate from `status-monitor.yaml` and never touches the public 
 > **`ops/dev-pipeline-monitor.yaml`** — activation is just copying it into
 > `.github/workflows/` and setting the `PIPELINE_SUPABASE_KEY` secret.
 
+### Promote the pipeline probe to the public page (prod)
+
+`check.py` has a `probe_assistant_pipeline()` that reuses `pipeline_probe.py` as the
+`assistant_pipeline` component ("AI Assistant (end-to-end)", AI category). It is
+**conditional**: the component is appended to `COMPONENTS` **only when
+`PIPELINE_SUPABASE_KEY` is set**, so with no secret the page is byte-identical — merging
+this integration is completely inert. Once active it folds into the SAME `failed` /
+`summary` workflow outputs as every other component, so the existing **"Notify Telegram
+on failure"** step in `status-monitor.yaml` alerts on a confirmed stall with **no new
+Telegram wiring** (same bot token + `TRANSACTIONAL_TEST_TELEGRAM_CHANNEL` ops channel).
+A cross-run debounce (`PIPELINE_FAIL_THRESHOLD`, default **2**) means one transient
+async hiccup never flaps the public AI row — only a sustained stall reds it + alerts.
+
+**Blocked on one prerequisite (prod has no safe injection target).** The synthetic
+inbound must resolve to an **active, non-deleted, non-Twilio `minimo_ai` channel**
+(`findActiveChannelByPhoneNumber` requires `deleted_at IS NULL`). On prod the only such
+channels belong to **paying companies** (AD Productions co34, BeautyGo co36, FreedHome
+co58) — which the hard safety perimeter forbids. There is no prod equivalent of dev's
+dedicated Company Test (co3); co25 (Minimo / The Bare OÜ, the engine-probe company) has
+the probe assistant `ac50a817` bound but its `minimo_ai` channels are all
+DISCONNECTED/deleted. **Activation therefore needs a dedicated test `minimo_ai` channel
+on a non-paying company first** (recommended: co25, Minimo's own entity).
+
+**Activation checklist (once the test channel exists):**
+1. Provision a dedicated `minimo_ai` channel on a non-paying company (e.g. co25): a
+   synthetic unique business number + `channel_id`, `agent_id = ac50a817…`, provider
+   `360dialog` (a dummy D360 key is fine — the probe asserts on the persisted reply row,
+   not on delivery), `status ACTIVE`, `deleted_at NULL`.
+2. Set the prod secrets/vars (see Secrets below): `PIPELINE_SUPABASE_KEY_PROD`,
+   `PIPELINE_BUSINESS_NUMBER`, `PIPELINE_CHANNEL_ID`, var `PIPELINE_COMPANY`.
+3. Add the env + `PROBE_PIPELINE` gate to `status-monitor.yaml` (workflow file → GitHub
+   web UI or a `workflow`-scoped PAT). The exact additions are in
+   **`ops/status-monitor.prod-pipeline.snippet.yaml`**.
+4. Run `workflow_dispatch` once; confirm the new `assistant_pipeline` row is
+   `operational` and a simulated stall reds it + fires the Telegram alert.
+
 ## Secrets (GitHub → repo settings → Secrets)
 Reused from `web-app-v2`'s existing `transactional-prod-test` action:
 `MINIMO_PROD_API_KEY`, `MAILOSAUR_SERVER_ID`, `MAILOSAUR_APIKEY`,
@@ -144,6 +182,15 @@ For the **dev pipeline probe** (`dev-pipeline-monitor.yaml`): `PIPELINE_SUPABASE
 row). Optional alerting (off by default): repo variable `PIPELINE_ALERT=true` plus
 secrets `PIPELINE_TELEGRAM_BOT_TOKEN` + `PIPELINE_TELEGRAM_CHAT` (point at a **dev**
 channel, never the prod ops group, until a separate GO).
+
+For the **public-page pipeline component** (`check.py` `assistant_pipeline`, prod):
+`PIPELINE_SUPABASE_KEY_PROD` (required — the **prod** Supabase `service_role` key, used
+read-only to assert the reply row), `PIPELINE_BUSINESS_NUMBER` + `PIPELINE_CHANNEL_ID`
+(the dedicated prod test channel's number + id), and the repo variable `PIPELINE_COMPANY`
+(the test company id, e.g. `25`). `PIPELINE_API_BASE` (`https://api.minimo.it`) and
+`PIPELINE_REST_BASE` (`https://nelourjougsxqvekwfqt.supabase.co/rest/v1`) are plain
+(non-secret) env in the workflow. Telegram reuses the existing `TELEGRAM_BOT_TOKEN` +
+`TRANSACTIONAL_TEST_TELEGRAM_CHANNEL` — no new alert secrets.
 
 ## Deploy
 1. Push this repo to `thebareminimo/minimo-status`.
