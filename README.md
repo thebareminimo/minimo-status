@@ -132,12 +132,54 @@ which is fully separate from `status-monitor.yaml` and never touches the public 
 > **`ops/dev-pipeline-monitor.yaml`** — activation is just copying it into
 > `.github/workflows/` and setting the `PIPELINE_SUPABASE_KEY` secret.
 
+## AI on every channel (PROD, on the public page)
+
+People reach Minimo's AI on WhatsApp, Telegram and Slack. The engine probe above
+can't see any of those channels, so each one has its own row under **AI**:
+
+- **AI on WhatsApp** (`probe_ai_whatsapp`, hourly with the engine probe) — the real
+  end-to-end. It posts a synthetic Meta-shaped inbound message to
+  `api.minimo.it/public/v1/webhooks/whatsapp` for Minimo's own AI number
+  (+34 656 48 88 97, The Bare OÜ co25, channel 30, `minimo_ai`), then reads the
+  conversation back through the public API until the AI reply shows up. That's the
+  whole prod pipeline from the table above (ingest → queue → worker → AI → dispatch),
+  the same path every customer's support bot uses, so it catches the 2026-09-22/23
+  class of outage in prod. Two attempts per run, plus `AI_WHATSAPP_FAIL_THRESHOLD`
+  (default 2) consecutive failed runs before the row goes red and Telegram fires.
+  - Sender: non-routable `15550001111`. The reply's final send can't reach a person.
+  - Read-back key: `AI_PROBE_API_KEY`, a co25 key with **only** the `whatsapp`
+    permission (`api_key` id `50066a78511b`). No database access.
+  - Side effect: a "Minimo Status Probe" conversation in co25's inbox that gets one
+    exchange per hour. That's expected.
+- **AI on Telegram** (`probe_ai_telegram`, every run) — no company of ours has a
+  Telegram chat linked to Mo, so this checks the connection: the `@minimoaibot`
+  token works, Telegram's webhook points at api.minimo.it with no fresh delivery
+  errors piling up, and our endpoint accepts an update on that exact URL (route up,
+  path secret matches prod). The update comes "from a bot", which Minimo ignores, so
+  no AI runs and nobody gets a message. Secret: `TELEGRAM_MO_BOT_TOKEN`.
+- **AI on Slack** (`probe_ai_slack`, every run) — no workspace has Mo installed yet,
+  so this sends Slack's `url_verification` handshake, signed like Slack signs it, to
+  `api.minimo.it/public/v1/webhooks/slack/events` and expects the challenge back.
+  That proves the endpoint is up and prod's signing secret matches the Slack app
+  "Mo". Nothing is posted. Secret: `SLACK_SIGNING_SECRET`.
+
+Each probe leaves its row off the page until its secret is set, so the code is inert
+until the workflow passes the secret in.
+
+**Next step for Telegram and Slack:** once a Minimo-owned Telegram chat / Slack
+workspace is linked to co25, these can become full round-trips like WhatsApp (send a
+message, wait for Mo's reply).
+
 ## Secrets (GitHub → repo settings → Secrets)
 Reused from `web-app-v2`'s existing `transactional-prod-test` action:
 `MINIMO_PROD_API_KEY`, `MAILOSAUR_SERVER_ID`, `MAILOSAUR_APIKEY`,
 `TRANSACTIONAL_TEST_UID_PROD`, `TELEGRAM_BOT_TOKEN`,
 `TRANSACTIONAL_TEST_TELEGRAM_CHANNEL`. Optional: `WHATSAPP_TEST_RECIPIENT`
 (defaults to the Andrea test number).
+
+For **AI on every channel**: `AI_PROBE_API_KEY` (co25 key, `whatsapp` permission only),
+`TELEGRAM_MO_BOT_TOKEN` (the prod `@minimoaibot` token), `SLACK_SIGNING_SECRET` (the
+prod Slack app "Mo"). Keep the last two in sync with backendProd if they're rotated.
 
 For the **dev pipeline probe** (`dev-pipeline-monitor.yaml`): `PIPELINE_SUPABASE_KEY`
 (required — the **dev** Supabase `service_role` key, used read-only to assert the reply
