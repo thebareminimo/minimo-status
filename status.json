@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-28T23:49:13Z",
+  "updated_at": "2026-10-29T00:22:44Z",
   "overall": "operational",
   "components": [
     {
@@ -9,7 +9,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 97.78,
-      "last_check": "2026-10-28T23:49:13Z",
+      "last_check": "2026-10-29T00:22:44Z",
       "history": [
         "operational",
         "operational",
@@ -43,7 +43,6 @@
         "operational",
         "operational",
         "operational",
-        "operational",
         "down",
         "operational",
         "operational",
@@ -76,6 +75,7 @@
         "operational",
         "operational",
         "down",
+        "operational",
         "operational",
         "operational",
         "operational",
@@ -110,9 +110,8 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 97.78,
-      "last_check": "2026-10-28T23:49:13Z",
+      "last_check": "2026-10-29T00:22:44Z",
       "history": [
-        "operational",
         "operational",
         "operational",
         "operational",
@@ -150,6 +149,7 @@
         "operational",
         "operational",
         "degraded",
+        "operational",
         "operational",
         "operational",
         "operational",
@@ -211,9 +211,8 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 97.78,
-      "last_check": "2026-10-28T23:49:13Z",
+      "last_check": "2026-10-29T00:22:44Z",
       "history": [
-        "operational",
         "operational",
         "operational",
         "operational",
@@ -302,6 +301,7 @@
         "operational",
         "operational",
         "operational",
+        "operational",
         "operational"
       ]
     },
@@ -312,7 +312,7 @@
       "category": "Delivery",
       "status": "operational",
       "uptime_90d": 92.22,
-      "last_check": "2026-10-28T23:49:13Z",
+      "last_check": "2026-10-29T00:22:44Z",
       "history": [
         "operational",
         "operational",
@@ -359,7 +359,6 @@
         "operational",
         "operational",
         "operational",
-        "operational",
         "down",
         "down",
         "down",
@@ -385,6 +384,7 @@
         "operational",
         "down",
         "down",
+        "operational",
         "operational",
         "operational",
         "operational",
@@ -413,7 +413,7 @@
       "category": "Delivery",
       "status": "operational",
       "uptime_90d": 91.11,
-      "last_check": "2026-10-28T20:09:10Z",
+      "last_check": "2026-10-29T00:22:44Z",
       "history": [
         "operational",
         "operational",
@@ -445,7 +445,6 @@
         "operational",
         "operational",
         "operational",
-        "operational",
         "down",
         "operational",
         "operational",
@@ -494,6 +493,7 @@
         "down",
         "down",
         "down",
+        "operational",
         "operational",
         "operational",
         "operational",
@@ -570,7 +570,6 @@
         null,
         null,
         null,
-        null,
         "operational",
         "operational",
         "operational",
@@ -606,7 +605,8 @@
         "down",
         "operational",
         "operational",
-        "operational"
+        "operational",
+        null
       ]
     },
     {
@@ -706,8 +706,8 @@
         null,
         null,
         null,
-        null,
-        "operational"
+        "operational",
+        null
       ],
       "fail_streak": 0
     },
@@ -718,7 +718,7 @@
       "category": "AI",
       "status": "operational",
       "uptime_90d": 100.0,
-      "last_check": "2026-10-28T23:49:13Z",
+      "last_check": "2026-10-29T00:22:44Z",
       "history": [
         null,
         null,
@@ -808,7 +808,7 @@
         null,
         null,
         null,
-        null,
+        "operational",
         "operational"
       ]
     },
@@ -819,7 +819,7 @@
       "category": "AI",
       "status": "operational",
       "uptime_90d": 100.0,
-      "last_check": "2026-10-28T23:49:13Z",
+      "last_check": "2026-10-29T00:22:44Z",
       "history": [
         null,
         null,
@@ -909,7 +909,7 @@
         null,
         null,
         null,
-        null,
+        "operational",
         "operational"
       ]
     }
