@@ -14,14 +14,11 @@ Probes are grouped into two tiers:
   Delivery — deep end-to-end probes (real messages):
   - email:    send a real transactional via Minimo → verify it arrives in a
               Mailosaur inbox (true end-to-end delivery).
-  - whatsapp: send an APPROVED UTILITY template DIRECTLY through BeautyGo co36's
-              ACTIVE 360dialog account (account 2 / ch15) via the 360dialog Cloud
-              API, and confirm 360dialog accepts it (2xx + a message id). This is
-              a *delivery* probe of the one thing that flaps: whether BeautyGo's
-              live WhatsApp number can actually send a paid template RIGHT NOW.
-              It sends with ch15's OWN D360 key, so it CANNOT fall through to the
-              shared/fallback `channel=None` path (the Minimo-public-API routing
-              leak) nor to The Bare OÜ's account — Andrea's explicit requirement.
+  - whatsapp: send the APPROVED UTILITY template `minimo_status_check` through
+              Minimo's public API (co25 key), pinned with `sender` to Minimo's own
+              Meta-direct number (+34 656 48 88 97, ch30), and confirm Minimo
+              accepts it. Measures the platform on a number Minimo owns, not a
+              customer's number (changed 2026-10-31).
               The template must exist + be approved on the active account
               (see _whatsapp_attempt). Tradeoff: this bypasses Minimo's own
               send pipeline, so a Minimo-internal routing break won't red this
@@ -225,63 +222,44 @@ def probe_email():
     return "down", f"email not delivered across {attempts} attempts — " + "; ".join(details)
 
 def _whatsapp_attempt():
-    # DIRECT 360dialog send through BeautyGo co36's ACTIVE channel (account 2 /
-    # ch15). `WHATSAPP_PROD_API_KEY` is ch15's OWN 360dialog D360-API-KEY (from
-    # prod `whatsapp_channel.api_key` for the co36 ACTIVE channel). Sending with
-    # this key guarantees the message goes out on ch15 and NOTHING else: it
-    # cannot fall through to the shared/fallback `channel=None` path (the current
-    # Minimo-public-API routing leak that lands probe sends on The Bare OÜ's
-    # negative prepaid account) — Andrea's explicit requirement after the probe
-    # repeatedly flapped on that shared account. When BeautyGo swaps its WABA,
-    # rotate this secret to the new active channel's D360 key.
-    api_key   = env("WHATSAPP_PROD_API_KEY", required=True)
+    # Send through MINIMO ITSELF (2026-10-31): POST /public/v1/templates/whatsapp/send
+    # with a co25 (Minimo / The Bare OÜ) key, pinned with `sender` to Minimo's own
+    # Meta-direct number (+34 656 48 88 97, ch30, phone_number_id 1434458863076380,
+    # WABA 1819617479061624). This measures the PLATFORM (API key auth -> template
+    # resolution -> channel -> Meta Cloud API) on a number Minimo owns and pays for,
+    # instead of a customer's number: the old probe sent directly with BeautyGo's
+    # 360dialog key, so BeautyGo's own migration (credit line, routing) turned the
+    # page red on 30-31/10 while every other company kept sending.
+    # `sender` makes the backend THROW WHATSAPP_SENDER_NOT_FOUND instead of falling
+    # back to another number, so the probe can never land on a different channel.
+    # Key: WHATSAPP_PROBE_API_KEY if set, else AI_PROBE_API_KEY (co25 key with the
+    # whatsapp permission, already used by the AI-on-WhatsApp probe).
+    api_key   = env("WHATSAPP_PROBE_API_KEY", "") or env("AI_PROBE_API_KEY", required=True)
+    base      = env("WHATSAPP_PROBE_BASE", "https://api.minimo.it").rstrip("/")
+    sender    = env("WHATSAPP_PROBE_SENDER", "1434458863076380")
     recipient = env("WHATSAPP_TEST_RECIPIENT", "+393886543634")
-    # 360dialog Cloud API wants the MSISDN as plain digits (no leading +).
-    to_digits = recipient.strip().lstrip("+").replace(" ", "")
-    base      = env("WHATSAPP_360_BASE", "https://waba-v2.360dialog.io").rstrip("/")
-    # Template choice (2026-10-17): `minimo_status_check` (en_US) — a DEDICATED
-    # health-check UTILITY template registered + APPROVED on BeautyGo co36's
-    # ACTIVE account (account 2 / ch15) specifically for this probe. It has NO
-    # body params and NO button (BODY-only: "Minimo automated health check…"), so
-    # the probe no longer borrows a real business template. This is the durable
-    # fix: the probe is now immune to BeautyGo editing/renaming/retiring any
-    # customer-facing template. (It previously borrowed `client_cancelled_appointment`
-    # (it, UTILITY) — a real appointment-cancelled template — because the old
-    # dedicated template lived only on the RETIRED account 8 and 404'd on the
-    # active one; that dependency is now removed.) Copy reused verbatim from the
-    # known-good account-8 definition so approval was fast.
+    # `minimo_status_check` (en_US, UTILITY, BODY-only, no params/buttons) is
+    # approved on Minimo's WABA 1819617479061624 for this probe only.
     tpl_name  = env("WHATSAPP_TEMPLATE_NAME", "minimo_status_check")
     tpl_lang  = env("WHATSAPP_TEMPLATE_LANG", "en_US")
-    # The dedicated template has NO body placeholders → no body params. (Overridable
-    # via env for a template that does expect positional BODY params, comma-separated.)
-    params    = [p for p in env("WHATSAPP_TEMPLATE_PARAMS", "").split(",")]
-    # The dedicated template has NO URL button → no button param. (Overridable via
-    # env for a template whose dynamic URL button needs a value; empty disables the
-    # button component.)
-    btn_param = env("WHATSAPP_TEMPLATE_BUTTON_URL_PARAM", "")
-    template  = {"name": tpl_name, "language": {"code": tpl_lang}}
-    components = []
-    if params and params != [""]:
-        components.append({"type": "body",
-                           "parameters": [{"type": "text", "text": p} for p in params]})
-    if btn_param:
-        components.append({"type": "button", "sub_type": "url", "index": "0",
-                           "parameters": [{"type": "text", "text": btn_param}]})
-    if components:
-        template["components"] = components
-    payload = {"messaging_product": "whatsapp", "recipient_type": "individual",
-               "to": to_digits, "type": "template", "template": template}
-    st, body = http("POST", f"{base}/messages",
-                    headers={"D360-API-KEY": api_key, "Content-Type": "application/json"},
-                    body=json.dumps(payload))
+    template  = {"name": tpl_name, "languageCode": tpl_lang}
+    params    = [p for p in env("WHATSAPP_TEMPLATE_PARAMS", "").split(",") if p]
+    if params:
+        template["components"] = [{"type": "BODY",
+                                   "parameters": [{"type": "text", "text": p} for p in params]}]
+    payload = {"recipient": recipient.strip().replace(" ", ""), "type": "template",
+               "sender": sender, "template": template,
+               "contactSource": "status-probe"}
+    st, body = http("POST", f"{base}/public/v1/templates/whatsapp/send",
+                    headers={"Authorization": f"Bearer {api_key}",
+                             "Content-Type": "application/json"},
+                    body=json.dumps(payload), timeout=45)
     ok = False
     try:
-        j = json.loads(body)
-        # 360dialog Cloud API returns {"messages":[{"id":"..."}]} on acceptance.
-        ok = st in (200, 201) and bool((j.get("messages") or [{}])[0].get("id"))
+        ok = st in (200, 201) and json.loads(body).get("success") is True
     except Exception:
         ok = False
-    return ("operational", f"360dialog accepted (HTTP {st})") if ok else ("down", f"send HTTP {st}: {body[:200]}")
+    return ("operational", f"Minimo accepted the send (HTTP {st})") if ok else ("down", f"send HTTP {st}: {body[:200]}")
 
 def probe_whatsapp():
     # Retry-then-confirm: a single rejected/slow send (transient 5xx, blip) must

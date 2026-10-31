@@ -52,14 +52,15 @@ check.py every 15 min:                                     index.html  ← fetch
   to a test number; v1 confirms the send is **accepted** (whole auth→template→dispatch
   pipeline). Confirming the Meta `delivered` webhook is a planned v1.1 upgrade.
   Runs every 4h (not every 15 min) so it doesn't buzz a real phone constantly.
-  The template name/lang/params default in `check.py` (`WHATSAPP_TEMPLATE_NAME`,
-  `_LANG`, `_PARAMS`, `_BUTTON_URL_PARAM` override them). It MUST be an approved
-  template on BeautyGo co36's *active* 360dialog account — when BeautyGo swaps its
-  WABA, re-point the name to a template approved on the new account (the API key is
-  company-scoped and already routes to the active channel, so it needs no change).
-  **Debounce:** because this send goes through a third-party (BeautyGo) 360dialog
-  account, a single run can fail for the *customer's* prepaid-credit balance
-  (`422 … "lack of payment"`) rather than a Minimo outage. The WhatsApp component
+  It sends FROM Minimo's own Meta-direct number (+34 656 48 88 97, ch30, pinned with
+  `sender` = phone_number_id `1434458863076380`) with a co25 key (`WHATSAPP_PROBE_API_KEY`,
+  else `AI_PROBE_API_KEY`), so it measures the platform on a number Minimo owns, not a
+  customer's number (until 2026-10-31 it used BeautyGo's 360dialog key, and BeautyGo's own
+  migration turned the page red). Template `minimo_status_check` (en_US, UTILITY, no
+  params) must stay approved on Minimo's WABA `1819617479061624`; overrides:
+  `WHATSAPP_TEMPLATE_NAME`, `_LANG`, `_PARAMS`, `WHATSAPP_PROBE_SENDER`.
+  **Debounce:** a single paid send can fail for a transient Meta/billing blip rather
+  than a Minimo outage. The WhatsApp component
   therefore only flips to `down` / alerts after **N consecutive** failed probes
   (`WHATSAPP_FAIL_THRESHOLD`, default 3); a transient failure stays green. A real,
   sustained Minimo-pipeline outage still trips the threshold and goes red (and the
