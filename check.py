@@ -256,7 +256,9 @@ def _whatsapp_attempt():
                     body=json.dumps(payload), timeout=45)
     ok = False
     try:
-        ok = st in (200, 201) and json.loads(body).get("success") is True
+        j = json.loads(body)
+        # The public API wraps responses: {"data": {"success": true}}.
+        ok = st in (200, 201) and (j.get("data") or j).get("success") is True
     except Exception:
         ok = False
     return ("operational", f"Minimo accepted the send (HTTP {st})") if ok else ("down", f"send HTTP {st}: {body[:200]}")
