@@ -263,15 +263,81 @@ def _whatsapp_attempt():
         ok = False
     return ("operational", f"Minimo accepted the send (HTTP {st})") if ok else ("down", f"send HTTP {st}: {body[:200]}")
 
+WA_PROBE_TEXT = "Minimo automated health check"
+
+def _whatsapp_delivery_check(sent_after, api_key, base, recipient):
+    """After Minimo accepted the send, confirm Meta did not reject it.
+
+    Meta rejects some sends asynchronously (e.g. 131042 payment issue on
+    2026-10-31): the public API answers 201 and the failure only lands a few
+    seconds later as a status webhook, which flips the stored message to
+    `failed`. The backend stores only sent/failed (no delivered), so the check
+    is: find the probe message in the recipient's conversation through the
+    public read API and make sure it does not turn `failed` within the window.
+    Never sends anything. Returns (status, detail)."""
+    window = int(env("WHATSAPP_DELIVERY_WINDOW", "45"))
+    hdrs = {"Authorization": f"Bearer {api_key}"}
+    digits = "".join(ch for ch in recipient if ch.isdigit())
+    deadline = time.time() + window
+    chat_id, msg, last_err = None, None, ""
+    while True:
+        if chat_id is None:
+            st, body = http("GET", f"{base}/public/v1/whatsapp/conversations?page=1&pageSize=20",
+                            headers=hdrs, timeout=20)
+            if st == 200:
+                try:
+                    j = json.loads(body)
+                    items = (j.get("data") or {}).get("data") if isinstance(j.get("data"), dict) else j.get("data")
+                    for c in items or []:
+                        ph = "".join(ch for ch in ((c.get("contact") or {}).get("phone") or "") if ch.isdigit())
+                        if ph and ph == digits:
+                            chat_id = c.get("chatId")
+                            break
+                except Exception as e:
+                    last_err = f"conversations parse error: {e}"
+            else:
+                last_err = f"conversations HTTP {st}: {body[:120]}"
+        if chat_id is not None:
+            st, body = http("GET", f"{base}/public/v1/whatsapp/conversations/{chat_id}/messages?page=1&pageSize=10",
+                            headers=hdrs, timeout=20)
+            if st == 200:
+                try:
+                    j = json.loads(body)
+                    items = (j.get("data") or {}).get("data") if isinstance(j.get("data"), dict) else j.get("data")
+                    msg = next((m for m in items or []
+                                if m.get("direction") == "outbound"
+                                and (m.get("text") or "").startswith(WA_PROBE_TEXT)
+                                and (m.get("timestamp") or 0) >= sent_after), None)
+                except Exception as e:
+                    last_err = f"messages parse error: {e}"
+            else:
+                last_err = f"messages HTTP {st}: {body[:120]}"
+            if msg and msg.get("status") == "failed":
+                return "down", f"Minimo accepted the send but Meta rejected it (message {msg.get('id')} status failed)"
+        if time.time() >= deadline:
+            break
+        time.sleep(5)
+    if msg:
+        return "operational", f"sent, no rejection within {window}s (message {msg.get('id')} status {msg.get('status')})"
+    # The read side is not the thing under test: if it can't find the message,
+    # say so loudly in the detail but don't page on it.
+    return "operational", f"sent; delivery NOT verified ({last_err or 'probe message not found'})"
+
 def probe_whatsapp():
-    # Retry-then-confirm: a single rejected/slow send (transient 5xx, blip) must
-    # not flip WhatsApp red. Note: retries only happen on FAILURE — a successful
-    # send returns 'operational' on attempt 1, so exactly ONE real message reaches
-    # the test phone in the normal case (no extra buzz). A genuine outage (e.g.
-    # 360dialog credit negative → 422 rejected, undelivered) still confirms 'down'
-    # after 3 consecutive failures. Slightly longer delay since each try hits the
-    # real send pipeline.
-    return retry_until_ok(_whatsapp_attempt, attempts=3, delay=5.0)
+    # Retry-then-confirm on the SEND only: a rejected/slow API call (transient
+    # 5xx, blip) is retried up to 3x; a successful send returns on attempt 1, so
+    # exactly ONE real message goes out in the normal case. Once Minimo accepts
+    # it, the delivery check runs ONCE (no re-send): if Meta rejects the message
+    # asynchronously, the component is down.
+    sent_after = int(time.time()) - 5
+    status, detail = retry_until_ok(_whatsapp_attempt, attempts=3, delay=5.0)
+    if status != "operational":
+        return status, detail
+    api_key = env("WHATSAPP_PROBE_API_KEY", "") or env("AI_PROBE_API_KEY", required=True)
+    base = env("WHATSAPP_PROBE_BASE", "https://api.minimo.it").rstrip("/")
+    recipient = env("WHATSAPP_TEST_RECIPIENT", "+393886543634")
+    d_status, d_detail = _whatsapp_delivery_check(sent_after, api_key, base, recipient)
+    return d_status, f"{detail}; {d_detail}"
 
 def _assistant_attempt():
     """One real assistant reply. Returns (status, detail).

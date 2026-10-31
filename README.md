@@ -49,8 +49,11 @@ check.py every 15 min:                                     index.html  ← fetch
 - **Email** — real end-to-end: send via `app.minimo.it/api/transactionals` to a
   Mailosaur inbox, confirm arrival. True delivery, not just an API 200.
 - **WhatsApp** — send an approved UTILITY template via `api.minimo.it/public/v1/templates/whatsapp/send`
-  to a test number; v1 confirms the send is **accepted** (whole auth→template→dispatch
-  pipeline). Confirming the Meta `delivered` webhook is a planned v1.1 upgrade.
+  to a test number and confirms the send is **accepted** (whole auth→template→dispatch
+  pipeline). Then, without re-sending, it reads the message back through the public
+  conversations API for up to 45s (`WHATSAPP_DELIVERY_WINDOW`): if Meta rejects it
+  asynchronously (status `failed`, e.g. 131042 payment issue) the component is down.
+  The backend stores only sent/failed, so this catches rejections, not `delivered`.
   Runs every 4h (not every 15 min) so it doesn't buzz a real phone constantly.
   It sends FROM Minimo's own Meta-direct number (+34 656 48 88 97, ch30, pinned with
   `sender` = phone_number_id `1434458863076380`) with a co25 key (`WHATSAPP_PROBE_API_KEY`,
