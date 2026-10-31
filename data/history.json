@@ -862,7 +862,8 @@
     "2026-10-27": "operational",
     "2026-10-28": "operational",
     "2026-10-29": "operational",
-    "2026-10-30": "operational"
+    "2026-10-30": "operational",
+    "2026-10-31": "operational"
   },
   "ai_telegram": {
     "2026-10-28": "operational",
@@ -879,6 +880,7 @@
   "ai_whatsapp": {
     "2026-10-28": "operational",
     "2026-10-29": "operational",
-    "2026-10-30": "operational"
+    "2026-10-30": "operational",
+    "2026-10-31": "operational"
   }
 }
