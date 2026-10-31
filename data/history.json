@@ -309,11 +309,11 @@
     "2026-10-10": "operational",
     "2026-10-11": "operational",
     "2026-10-12": "operational",
-    "2026-10-13": "down",
-    "2026-10-14": "down",
-    "2026-10-15": "down",
-    "2026-10-16": "down",
-    "2026-10-17": "down",
+    "2026-10-13": "operational",
+    "2026-10-14": "operational",
+    "2026-10-15": "operational",
+    "2026-10-16": "operational",
+    "2026-10-17": "operational",
     "2026-10-18": "operational",
     "2026-10-19": "operational",
     "2026-10-20": "operational",
@@ -326,8 +326,8 @@
     "2026-10-27": "operational",
     "2026-10-28": "operational",
     "2026-10-29": "operational",
-    "2026-10-30": "down",
-    "2026-10-31": "down"
+    "2026-10-30": "operational",
+    "2026-10-31": "operational"
   },
   "api": {
     "2026-08-21": "operational",
