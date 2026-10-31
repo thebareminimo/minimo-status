@@ -764,7 +764,9 @@ def main():
     if gh_out:
         with open(gh_out, "a") as f:
             f.write(f"overall={overall}\n")
-            f.write(f"failed={'true' if failures else 'false'}\n")
+            # Only main alerts: a test run dispatched on a branch must never page.
+            on_main = os.environ.get("GITHUB_REF", "refs/heads/main") == "refs/heads/main"
+            f.write(f"failed={'true' if failures and on_main else 'false'}\n")
             f.write("summary=" + " | ".join(failures).replace("\n", " ")[:300] + "\n")
     print(f"OVERALL: {overall}")
     # never fail the job on a probe-down (we still want status.json committed);
