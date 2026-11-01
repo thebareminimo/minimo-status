@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-31T23:49:16Z",
+  "updated_at": "2026-11-01T00:23:34Z",
   "overall": "operational",
   "components": [
     {
@@ -9,7 +9,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 97.78,
-      "last_check": "2026-10-31T23:49:16Z",
+      "last_check": "2026-11-01T00:23:34Z",
       "history": [
         "operational",
         "operational",
@@ -40,7 +40,6 @@
         "operational",
         "operational",
         "operational",
-        "operational",
         "down",
         "operational",
         "operational",
@@ -73,6 +72,7 @@
         "operational",
         "operational",
         "down",
+        "operational",
         "operational",
         "operational",
         "operational",
@@ -110,9 +110,8 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 97.78,
-      "last_check": "2026-10-31T23:49:16Z",
+      "last_check": "2026-11-01T00:23:34Z",
       "history": [
-        "operational",
         "operational",
         "operational",
         "operational",
@@ -147,6 +146,7 @@
         "operational",
         "operational",
         "degraded",
+        "operational",
         "operational",
         "operational",
         "operational",
@@ -211,9 +211,8 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 97.78,
-      "last_check": "2026-10-31T23:49:16Z",
+      "last_check": "2026-11-01T00:23:34Z",
       "history": [
-        "operational",
         "operational",
         "operational",
         "operational",
@@ -302,6 +301,7 @@
         "operational",
         "operational",
         "operational",
+        "operational",
         "operational"
       ]
     },
@@ -312,7 +312,7 @@
       "category": "Delivery",
       "status": "operational",
       "uptime_90d": 92.22,
-      "last_check": "2026-10-31T23:49:16Z",
+      "last_check": "2026-11-01T00:23:34Z",
       "history": [
         "operational",
         "operational",
@@ -356,7 +356,6 @@
         "operational",
         "operational",
         "operational",
-        "operational",
         "down",
         "down",
         "down",
@@ -382,6 +381,7 @@
         "operational",
         "down",
         "down",
+        "operational",
         "operational",
         "operational",
         "operational",
@@ -413,7 +413,7 @@
       "category": "Delivery",
       "status": "operational",
       "uptime_90d": 96.67,
-      "last_check": "2026-10-31T20:09:32Z",
+      "last_check": "2026-11-01T00:23:34Z",
       "history": [
         "operational",
         "operational",
@@ -442,7 +442,6 @@
         "operational",
         "operational",
         "operational",
-        "operational",
         "down",
         "operational",
         "operational",
@@ -453,6 +452,7 @@
         "down",
         "operational",
         "down",
+        "operational",
         "operational",
         "operational",
         "operational",
@@ -567,7 +567,6 @@
         null,
         null,
         null,
-        null,
         "operational",
         "operational",
         "operational",
@@ -606,7 +605,8 @@
         "operational",
         "operational",
         "operational",
-        "operational"
+        "operational",
+        null
       ]
     },
     {
@@ -703,11 +703,11 @@
         null,
         null,
         null,
-        null,
         "operational",
         "operational",
         "operational",
-        "operational"
+        "operational",
+        null
       ],
       "fail_streak": 0
     },
@@ -718,7 +718,7 @@
       "category": "AI",
       "status": "operational",
       "uptime_90d": 100.0,
-      "last_check": "2026-10-31T23:49:16Z",
+      "last_check": "2026-11-01T00:23:34Z",
       "history": [
         null,
         null,
@@ -805,7 +805,7 @@
         null,
         null,
         null,
-        null,
+        "operational",
         "operational",
         "operational",
         "operational",
@@ -819,7 +819,7 @@
       "category": "AI",
       "status": "operational",
       "uptime_90d": 100.0,
-      "last_check": "2026-10-31T23:49:16Z",
+      "last_check": "2026-11-01T00:23:34Z",
       "history": [
         null,
         null,
@@ -906,7 +906,7 @@
         null,
         null,
         null,
-        null,
+        "operational",
         "operational",
         "operational",
         "operational",
