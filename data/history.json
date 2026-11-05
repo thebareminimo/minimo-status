@@ -892,7 +892,8 @@
     "2026-11-01": "operational",
     "2026-11-02": "operational",
     "2026-11-03": "operational",
-    "2026-11-04": "operational"
+    "2026-11-04": "operational",
+    "2026-11-05": "operational"
   },
   "ai_telegram": {
     "2026-10-28": "operational",
@@ -924,6 +925,7 @@
     "2026-11-01": "operational",
     "2026-11-02": "operational",
     "2026-11-03": "operational",
-    "2026-11-04": "operational"
+    "2026-11-04": "operational",
+    "2026-11-05": "operational"
   }
 }
