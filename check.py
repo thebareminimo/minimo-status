@@ -73,7 +73,12 @@ HISTORY_DAYS = 90
 DEBOUNCE = {"whatsapp": int(os.environ.get("WHATSAPP_FAIL_THRESHOLD", "3") or "3"),
             # AI on WhatsApp runs the real LLM: one slow reply mustn't flip the
             # public row, so it needs 2 failed runs in a row (~2h at the hourly gate).
-            "ai_whatsapp": int(os.environ.get("AI_WHATSAPP_FAIL_THRESHOLD", "2") or "2")}
+            "ai_whatsapp": int(os.environ.get("AI_WHATSAPP_FAIL_THRESHOLD", "2") or "2"),
+            # AI on Telegram calls api.telegram.org from the GitHub runner. On
+            # 2026-11-05 01:11Z a ~30s runner->Telegram connection blip failed all
+            # 3 getMe tries while the bot was fine (q109), so it needs 2 failed runs
+            # in a row (~15-30 min) before the public row goes red.
+            "ai_telegram": int(os.environ.get("AI_TELEGRAM_FAIL_THRESHOLD", "2") or "2")}
 
 def env(name, default=None, required=False):
     v = os.environ.get(name, default)
@@ -92,7 +97,7 @@ def http(method, url, headers=None, body=None, timeout=30):
     except Exception as e:
         return 0, f"__exception__ {e}"
 
-def retry_until_ok(attempt_fn, attempts=3, delay=4.0):
+def retry_until_ok(attempt_fn, attempts=3, delay=4.0, backoff=1.0):
     """Retry-then-confirm wrapper shared by every single-sample probe.
 
     A single failed sample is almost never a real outage: a read-timeout, a
@@ -106,8 +111,10 @@ def retry_until_ok(attempt_fn, attempts=3, delay=4.0):
     (send + retry once, Mailosaur as ground truth) applied to the shallow probes,
     so one bad sample never flips a component red.
 
-    `attempt_fn` is a zero-arg callable returning (status, detail)."""
+    `attempt_fn` is a zero-arg callable returning (status, detail). `backoff`
+    multiplies the wait after each failed try (1.0 = fixed delay)."""
     last = None
+    wait = delay
     for i in range(1, attempts + 1):
         status, detail = attempt_fn()
         if status == "operational":
@@ -116,7 +123,8 @@ def retry_until_ok(attempt_fn, attempts=3, delay=4.0):
             return status, f"{detail} (recovered on attempt {i}/{attempts})"
         last = (status, detail)
         if i < attempts:
-            time.sleep(delay)
+            time.sleep(wait)
+            wait *= backoff
     status, detail = last
     return status, f"{status} on all {attempts} attempts — last: {detail}"
 
@@ -583,8 +591,8 @@ def probe_ai_whatsapp():
 def _ai_telegram_attempt():
     """Telegram → Minimo's AI bot. Returns (status, detail).
 
-    No company of ours has a Telegram chat linked to Mo, so this can't make Mo
-    answer a real message. It checks the connection instead, which is what
+    Few companies have a Telegram chat linked to Mo, and none we can write into,
+    so this can't make Mo answer a real message. It checks the connection instead, which is what
     breaks after a deploy or an env change:
       1. the bot token works (getMe);
       2. Telegram's webhook points at api.minimo.it, and Telegram has no fresh
@@ -600,14 +608,25 @@ def _ai_telegram_attempt():
                  "https://api.minimo.it/public/v1/webhooks/telegram/")
     tg = f"https://api.telegram.org/bot{token}"
 
+    def telegram_failed(method, st, body):
+        # HTTP 0 = no response at all (DNS, connect, reset, timeout from the
+        # runner): that says nothing about the bot, so never call it a rejected
+        # token. Only 401/404 from Telegram mean the token itself is bad.
+        if st == 0:
+            why = body.replace("__exception__ ", "").replace(token, "<token>")[:80]
+            return f"Telegram API unreachable from the checker (network, {method}: {why})"
+        if st in (401, 404):
+            return f"bot token rejected by Telegram ({method} HTTP {st})"
+        return f"Telegram API error ({method} HTTP {st}): {body.replace(token, '<token>')[:80]}"
+
     st, body = http("GET", f"{tg}/getMe", timeout=15)
     if st != 200:
-        return "down", f"bot token rejected by Telegram (getMe HTTP {st})"
+        return "down", telegram_failed("getMe", st, body)
     username = (json.loads(body).get("result") or {}).get("username", "?")
 
     st, body = http("GET", f"{tg}/getWebhookInfo", timeout=15)
     if st != 200:
-        return "down", f"getWebhookInfo HTTP {st}"
+        return "down", telegram_failed("getWebhookInfo", st, body)
     info = json.loads(body).get("result") or {}
     url = info.get("url") or ""
     if not url.startswith(expect):
@@ -638,7 +657,9 @@ def _ai_telegram_attempt():
     return "operational", f"@{username} connected, webhook accepts updates ({dt:.1f}s)"
 
 def probe_ai_telegram():
-    return retry_until_ok(_ai_telegram_attempt, attempts=3, delay=5.0)
+    # Backoff 5s then 15s: a runner->Telegram blip gets ~20s to clear inside the
+    # run, and the cross-run DEBOUNCE covers anything longer.
+    return retry_until_ok(_ai_telegram_attempt, attempts=3, delay=5.0, backoff=3.0)
 
 def _ai_slack_attempt():
     """Slack → Minimo's AI app ("Mo"). Returns (status, detail).
