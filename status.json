@@ -1,6 +1,6 @@
 {
-  "updated_at": "2026-11-05T01:11:14Z",
-  "overall": "down",
+  "updated_at": "2026-11-05T01:20:47Z",
+  "overall": "operational",
   "components": [
     {
       "id": "api",
@@ -9,7 +9,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 97.78,
-      "last_check": "2026-11-05T01:11:14Z",
+      "last_check": "2026-11-05T01:20:47Z",
       "history": [
         "operational",
         "operational",
@@ -110,7 +110,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 97.78,
-      "last_check": "2026-11-05T01:11:14Z",
+      "last_check": "2026-11-05T01:20:47Z",
       "history": [
         "operational",
         "operational",
@@ -211,7 +211,7 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 97.78,
-      "last_check": "2026-11-05T01:11:14Z",
+      "last_check": "2026-11-05T01:20:47Z",
       "history": [
         "operational",
         "operational",
@@ -312,7 +312,7 @@
       "category": "Delivery",
       "status": "operational",
       "uptime_90d": 92.22,
-      "last_check": "2026-11-05T01:11:14Z",
+      "last_check": "2026-11-05T01:20:47Z",
       "history": [
         "operational",
         "operational",
@@ -716,9 +716,9 @@
       "name": "AI on Telegram",
       "description": "Telegram messages reach Minimo's AI bot.",
       "category": "AI",
-      "status": "down",
+      "status": "operational",
       "uptime_90d": 88.89,
-      "last_check": "2026-11-05T01:11:14Z",
+      "last_check": "2026-11-05T01:20:47Z",
       "history": [
         null,
         null,
@@ -810,7 +810,8 @@
         "operational",
         "operational",
         "down"
-      ]
+      ],
+      "fail_streak": 0
     },
     {
       "id": "ai_slack",
@@ -819,7 +820,7 @@
       "category": "AI",
       "status": "operational",
       "uptime_90d": 100.0,
-      "last_check": "2026-11-05T01:11:14Z",
+      "last_check": "2026-11-05T01:20:47Z",
       "history": [
         null,
         null,
