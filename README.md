@@ -30,6 +30,7 @@ check.py every 15 min:                                     index.html  ← fetch
 
 ## Files
 - `check.py` — the public-page probes (3 reachability + 2 delivery + 1 AI engine probe) + history/uptime rollup (stdlib only).
+- `forms_probe.py` — public sign-up forms render probe (headless Chromium, read-only). Also a CLI: `python3 forms_probe.py --code <code> [--app …] [--api …]`.
 - `pipeline_probe.py` — **DEV-only** AI-assistant end-to-end *pipeline* probe (synthetic inbound → assert async reply). Not on the public page. See "AI assistant — two complementary probes" below.
 - `.github/workflows/status-monitor.yaml` — public-page schedule + commit + Telegram.
 - `.github/workflows/dev-pipeline-monitor.yaml` — dev pipeline-probe schedule (separate, prod-gated, no page writes).
@@ -44,6 +45,24 @@ check.py every 15 min:                                     index.html  ← fetch
 - **Web app** — `app.minimo.it` serves (unauth root redirects to signin → still "up").
 - **Authentication** — Supabase GoTrue `/auth/v1/health` for the prod project (uses the
   public anon key as `apikey`; skips cleanly if `SUPABASE_ANON_KEY` is unset — never false-red).
+
+**Sign-up forms** (Core services, hourly, real headless browser, read-only):
+- Renders ONE permanent synthetic form, PROD co22 Sendflows form 42 "probe: public form
+  render (do not delete)", code `U32C20Y` (`FORMS_PROBE_CODE`), no list, no transactional,
+  subscribe-only key `aed69f97fe5b`. Six surfaces: `GET app.minimo.it/api/form/internal`
+  (200 + definition), the shareable page `app.minimo.it/public-forms/<code>`, the OLD embed
+  script `app.minimo.it/api/form` (inline + popup) and the current `api.minimo.it/v1/api/form`
+  (inline + popup), each on a synthetic cross-origin host page. It asserts the form FIELDS
+  are in the DOM: Cityfy's popup rendered nothing from 2026-06-17 to 2026-11-06 while every
+  URL still answered 200, which a status-code check can't see. Never types or submits, so it
+  creates no contact.
+- Retry-then-confirm (3 tries, 20 s apart) and red only after 2 failed runs in a row
+  (`FORMS_FAIL_THRESHOLD`). Hourly (`PROBE_FORMS` on the `17 * * * *` cron / manual run),
+  because the workflow installs Chromium only then (~1 min).
+- No Telegram alert yet (rule: a new canary doesn't page until Andrea asks): the row goes red
+  on the page and in the Actions log only. `FORMS_ALERT=true` in the workflow env puts it on
+  the normal alert path.
+- Deleting form 42 or its key turns the row red on purpose.
 
 **Delivery** (deep end-to-end — real messages):
 - **Email** — real end-to-end: send via `app.minimo.it/api/transactionals` to a

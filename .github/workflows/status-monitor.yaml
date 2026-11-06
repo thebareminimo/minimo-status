@@ -22,6 +22,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Headless Chromium for the public forms render probe (forms_probe.py),
+      # only on the hourly cron / manual run, so the 15-min runs stay ~10 s.
+      - name: Install headless Chromium (forms probe)
+        if: github.event.schedule == '17 * * * *' || github.event_name == 'workflow_dispatch'
+        run: |
+          pip install --quiet playwright==1.61.0
+          python -m playwright install --with-deps chromium
+
       - name: Run probes
         id: probe
         env:
@@ -45,6 +53,10 @@ jobs:
           PROBE_WHATSAPP: ${{ github.event.schedule == '0 */4 * * *' || github.event_name == 'workflow_dispatch' }}
           # AI assistant + AI on WhatsApp only on their hourly cron or a manual run (real LLM calls)
           PROBE_ASSISTANT: ${{ github.event.schedule == '17 * * * *' || github.event_name == 'workflow_dispatch' }}
+          # Public sign-up forms render probe: same hourly gate (needs the Chromium step above).
+          # Code of the permanent synthetic form (PROD co22 form 42), public by design.
+          PROBE_FORMS: ${{ github.event.schedule == '17 * * * *' || github.event_name == 'workflow_dispatch' }}
+          FORMS_PROBE_CODE: U32C20Y
         run: python3 check.py
 
       - name: Commit refreshed status
