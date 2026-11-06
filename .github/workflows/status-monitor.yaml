@@ -20,7 +20,13 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
+      # Check out the branch tip at job start, not the SHA frozen at trigger time:
+      # a queued run (lagging cron / manual) otherwise commits on a stale base and its
+      # push is rejected when an earlier run pushed meanwhile. Runs are serialized by
+      # the concurrency group, so the tip is never moved while this job runs.
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
 
       # Headless Chromium for the public forms render probe (forms_probe.py),
       # only on the hourly cron / manual run, so the 15-min runs stay ~10 s.
