@@ -78,7 +78,15 @@ DEBOUNCE = {"whatsapp": int(os.environ.get("WHATSAPP_FAIL_THRESHOLD", "3") or "3
             # 2026-11-05 01:11Z a ~30s runner->Telegram connection blip failed all
             # 3 getMe tries while the bot was fine (q109), so it needs 2 failed runs
             # in a row (~15-30 min) before the public row goes red.
-            "ai_telegram": int(os.environ.get("AI_TELEGRAM_FAIL_THRESHOLD", "2") or "2")}
+            "ai_telegram": int(os.environ.get("AI_TELEGRAM_FAIL_THRESHOLD", "2") or "2"),
+            # Public forms render in a real headless browser (hourly): a slow CDN
+            # or one cold page must not flip the row, so 2 failed runs in a row.
+            "forms": int(os.environ.get("FORMS_FAIL_THRESHOLD", "2") or "2")}
+
+# Components that show on the page but do NOT trigger the Telegram alert yet.
+# Rule (Andrea, 2026-10-29): a new canary gets no Telegram alert unless he asks.
+# FORMS_ALERT=true moves the forms row onto the normal alert path.
+NO_ALERT = set() if str(os.environ.get("FORMS_ALERT", "")).strip().lower() in ("1", "true", "yes", "on") else {"forms"}
 
 def env(name, default=None, required=False):
     v = os.environ.get(name, default)
@@ -291,7 +299,7 @@ def _whatsapp_delivery_check(sent_after, api_key, base, recipient):
     while True:
         if chat_id is None:
             st, body = http("GET", f"{base}/public/v1/whatsapp/conversations?page=1&pageSize=20",
-                            headers=hdrs, timeout=20)
+                            headers=hdrs, timeout=15)
             if st == 200:
                 try:
                     j = json.loads(body)
@@ -307,7 +315,7 @@ def _whatsapp_delivery_check(sent_after, api_key, base, recipient):
                 last_err = f"conversations HTTP {st}: {body[:120]}"
         if chat_id is not None:
             st, body = http("GET", f"{base}/public/v1/whatsapp/conversations/{chat_id}/messages?page=1&pageSize=10",
-                            headers=hdrs, timeout=20)
+                            headers=hdrs, timeout=15)
             if st == 200:
                 try:
                     j = json.loads(body)
@@ -460,7 +468,7 @@ def _ai_wa_find_chat(base, headers, sender):
     if sender in _AI_WA_CHAT:
         return _AI_WA_CHAT[sender], 200
     st, body = http("GET", f"{base}/public/v1/whatsapp/conversations?page=1&pageSize=50",
-                    headers=headers, timeout=20)
+                    headers=headers, timeout=15)
     if st != 200:
         return None, st
     try:
@@ -546,7 +554,7 @@ def _ai_whatsapp_attempt(attempt):
             continue
         mst, mbody = http("GET", f"{base}/public/v1/whatsapp/conversations/"
                                  f"{chat_id}/messages?page=1&pageSize=10",
-                          headers=headers, timeout=20)
+                          headers=headers, timeout=15)
         if mst != 200:
             continue
         try:
@@ -646,7 +654,7 @@ def _ai_telegram_attempt():
         "text": "status probe"}}
     t = time.time()
     st, body = http("POST", url, headers={"Content-Type": "application/json"},
-                    body=json.dumps(ping), timeout=20)
+                    body=json.dumps(ping), timeout=15)
     dt = time.time() - t
     if st == 403:
         return "down", "Minimo rejected Telegram's webhook secret (403): secret drifted"
@@ -694,6 +702,34 @@ def _ai_slack_attempt():
 
 def probe_ai_slack():
     return retry_until_ok(_ai_slack_attempt, attempts=3, delay=5.0)
+
+# ---------- public forms (real headless browser, read-only, never submits) ----------
+def _forms_attempt():
+    """Render the synthetic co22 form on every public surface (shareable page, old
+    app.minimo.it/api/form script, current api.minimo.it/v1/api/form script, inline +
+    popup) and assert its fields are in the DOM. Cityfy's popup rendered nothing for
+    ~5 months (2026-06-17..11-06) while every URL answered 200: a status code alone
+    can't see that. See forms_probe.py."""
+    code = env("FORMS_PROBE_CODE", "")
+    if not code:
+        return "skip", "FORMS_PROBE_CODE not set"
+    try:
+        import forms_probe
+        results = forms_probe.run(code, env("FORMS_APP_URL", "https://app.minimo.it"),
+                                  env("FORMS_API_URL", "https://api.minimo.it"), timeout=15)
+    except ImportError as e:
+        return "skip", f"headless browser not installed ({e})"
+    except Exception as e:
+        return "down", f"probe error: {str(e)[:160]}"
+    return forms_probe.summarize(results)
+
+def probe_forms():
+    # Retry-then-confirm: one failed render is re-run twice, 20 s apart, before it
+    # counts (and the row only goes red after 2 failed runs in a row, see DEBOUNCE).
+    first = _forms_attempt()
+    if first[0] in ("operational", "skip"):
+        return first
+    return retry_until_ok(_forms_attempt, attempts=2, delay=20.0)
 
 # ---------- reachability probes (Tier 1: shallow GET, no side effects) ----------
 def _http_up(url, headers=None, ok=None, timeout=15, slow=5.0):
@@ -761,6 +797,7 @@ COMPONENTS = [
     ("ai_whatsapp", "AI on WhatsApp", "A WhatsApp message to Minimo's AI number gets an AI reply, end to end.", probe_ai_whatsapp, "AI"),
     ("ai_telegram", "AI on Telegram", "Telegram messages reach Minimo's AI bot.",                 probe_ai_telegram, "AI"),
     ("ai_slack",    "AI on Slack",    "Slack events reach Minimo's AI app.",                      probe_ai_slack,    "AI"),
+    ("forms",       "Sign-up forms",  "Embedded and shareable sign-up forms render for visitors.", probe_forms,       "Core services"),
 ]
 
 def truthy(v):
@@ -792,9 +829,12 @@ def main():
     # AI on Telegram / Slack send nothing and cost nothing: they run every time.
     gates = {"whatsapp": truthy(env("PROBE_WHATSAPP", "true")),
              "assistant": truthy(env("PROBE_ASSISTANT", "false")),
-             "ai_whatsapp": truthy(env("PROBE_ASSISTANT", "false"))}
+             "ai_whatsapp": truthy(env("PROBE_ASSISTANT", "false")),
+             # Forms need a headless Chromium, installed by the workflow only on the
+             # hourly cron / manual run (PROBE_FORMS). Off by default.
+             "forms": truthy(env("PROBE_FORMS", "false"))}
 
-    comps_out, overall, failures = [], "operational", []
+    comps_out, overall, failures, alerts = [], "operational", [], []
     for cid, name, desc, probe, category in COMPONENTS:
         if gates.get(cid, True):
             status, detail = probe()
@@ -822,6 +862,8 @@ def main():
             print(f"[{cid}] {status} — {detail}")
             if status != "operational":
                 failures.append(f"{name}: {detail}")
+                if cid not in NO_ALERT:
+                    alerts.append(f"{name}: {detail}")
             days = history.setdefault(cid, {})
             days[today] = worst(days.get(today, "operational"), status)  # worst-of-day
             last_check = now_iso
@@ -855,8 +897,8 @@ def main():
             f.write(f"overall={overall}\n")
             # Only main alerts: a test run dispatched on a branch must never page.
             on_main = os.environ.get("GITHUB_REF", "refs/heads/main") == "refs/heads/main"
-            f.write(f"failed={'true' if failures and on_main else 'false'}\n")
-            f.write("summary=" + " | ".join(failures).replace("\n", " ")[:300] + "\n")
+            f.write(f"failed={'true' if alerts and on_main else 'false'}\n")
+            f.write("summary=" + " | ".join(alerts).replace("\n", " ")[:300] + "\n")
     print(f"OVERALL: {overall}")
     # never fail the job on a probe-down (we still want status.json committed);
     # the Telegram step keys off the `failed` output instead.
