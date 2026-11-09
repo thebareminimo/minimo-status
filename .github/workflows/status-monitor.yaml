@@ -7,6 +7,7 @@ on:
     - cron: '*/15 * * * *'   # email probe every 15 min
     - cron: '0 */4 * * *'    # + WhatsApp probe every 4h (sends a real message)
     - cron: '17 * * * *'     # + AI assistant probe hourly (one cheap LLM+KB call)
+    - cron: '23 9 * * *'     # + AI on WhatsApp once a day (its reply goes out from Mo's number)
   workflow_dispatch:          # manual run probes everything
 
 concurrency:
@@ -57,8 +58,13 @@ jobs:
           SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5lbG91cmpvdWdzeHF2ZWt3ZnF0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0OTUwNjQsImV4cCI6MjA5NjA3MTA2NH0.pI2pl5S98zDersRoyxlEMCsPaJp-Cp7Z6i_rnTfQEAU
           # WhatsApp only on the 4h cron or a manual run (avoids buzzing a phone every 15 min)
           PROBE_WHATSAPP: ${{ github.event.schedule == '0 */4 * * *' || github.event_name == 'workflow_dispatch' }}
-          # AI assistant + AI on WhatsApp only on their hourly cron or a manual run (real LLM calls)
+          # AI assistant only on its hourly cron or a manual run (real LLM call)
           PROBE_ASSISTANT: ${{ github.event.schedule == '17 * * * *' || github.event_name == 'workflow_dispatch' }}
+          # AI on WhatsApp only on its daily cron or a manual run: each run makes Mo's
+          # number (co25 ch17) send one reply to the fake sender 15550001111, which Meta
+          # rejects (131026). Hourly that was ~24 failed sends a day from the only live
+          # Mo number (Andrea, 2026-11-09: daily).
+          PROBE_AI_WHATSAPP: ${{ github.event.schedule == '23 9 * * *' || github.event_name == 'workflow_dispatch' }}
           # Public sign-up forms render probe: same hourly gate (needs the Chromium step above).
           # Code of the permanent synthetic form (PROD co22 form 42), public by design.
           PROBE_FORMS: ${{ github.event.schedule == '17 * * * *' || github.event_name == 'workflow_dispatch' }}
