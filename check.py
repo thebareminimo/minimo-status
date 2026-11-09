@@ -37,7 +37,7 @@ Probes are grouped into two tiers:
 
   AI on every channel — where people actually talk to the AI:
   - ai_whatsapp: synthetic inbound to Minimo's own AI number (co25 ch17) → wait
-              for the AI reply via the public API. Full prod pipeline, hourly.
+              for the AI reply via the public API. Full prod pipeline, daily.
   - ai_telegram: @minimoaibot token + webhook health + our endpoint accepts updates.
   - ai_slack: signed Slack url_verification handshake echoed by the prod endpoint.
   Each is left off the page until its secret is set.
@@ -72,7 +72,8 @@ HISTORY_DAYS = 90
 # this debounce is the agreed mitigation. Threshold is env-overridable.
 DEBOUNCE = {"whatsapp": int(os.environ.get("WHATSAPP_FAIL_THRESHOLD", "3") or "3"),
             # AI on WhatsApp runs the real LLM: one slow reply mustn't flip the
-            # public row, so it needs 2 failed runs in a row (~2h at the hourly gate).
+            # public row, so it needs 2 failed runs in a row (~1 day at the daily gate;
+            # the hourly `assistant` probe still catches an LLM/KB outage within ~1h).
             "ai_whatsapp": int(os.environ.get("AI_WHATSAPP_FAIL_THRESHOLD", "2") or "2"),
             # AI on Telegram calls api.telegram.org from the GitHub runner. On
             # 2026-11-05 01:11Z a ~30s runner->Telegram connection blip failed all
@@ -826,11 +827,15 @@ def main():
     # before the workflow's hourly gate is applied it must NOT fire on the every
     # 15-min email cron. The workflow turns it on explicitly (hourly cron /
     # manual run) via PROBE_ASSISTANT.
-    # AI on WhatsApp runs the real LLM, so it shares the assistant's hourly gate.
+    # AI on WhatsApp has its own DAILY gate (PROBE_AI_WHATSAPP, daily cron / manual
+    # run): its AI reply goes out from Mo's live number to the fake sender
+    # 15550001111 and Meta rejects it (131026), so we keep those sends to one a day.
+    # Between runs the row carries over its last state (the page's staleness check
+    # is on `updated_at`, refreshed every run, not on a component's last_check).
     # AI on Telegram / Slack send nothing and cost nothing: they run every time.
     gates = {"whatsapp": truthy(env("PROBE_WHATSAPP", "true")),
              "assistant": truthy(env("PROBE_ASSISTANT", "false")),
-             "ai_whatsapp": truthy(env("PROBE_ASSISTANT", "false")),
+             "ai_whatsapp": truthy(env("PROBE_AI_WHATSAPP", "false")),
              # Forms need a headless Chromium, installed by the workflow only on the
              # hourly cron / manual run (PROBE_FORMS). Off by default.
              "forms": truthy(env("PROBE_FORMS", "false"))}

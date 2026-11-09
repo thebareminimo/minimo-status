@@ -161,7 +161,8 @@ which is fully separate from `status-monitor.yaml` and never touches the public 
 People reach Minimo's AI on WhatsApp, Telegram and Slack. The engine probe above
 can't see any of those channels, so each one has its own row under **AI**:
 
-- **AI on WhatsApp** (`probe_ai_whatsapp`, hourly with the engine probe) — the real
+- **AI on WhatsApp** (`probe_ai_whatsapp`, daily at 09:23 UTC + manual runs, own gate
+  `PROBE_AI_WHATSAPP`) — the real
   end-to-end. It posts a synthetic Meta-shaped inbound message to
   `api.minimo.it/public/v1/webhooks/whatsapp` for Minimo's own AI number
   (+34 652 58 43 93, The Bare OÜ co25, channel 17, `minimo_ai`), then reads the
@@ -170,11 +171,14 @@ can't see any of those channels, so each one has its own row under **AI**:
   the same path every customer's support bot uses, so it catches the 2026-09-22/23
   class of outage in prod. Two attempts per run, plus `AI_WHATSAPP_FAIL_THRESHOLD`
   (default 2) consecutive failed runs before the row goes red and Telegram fires.
-  - Sender: non-routable `15550001111`. The reply's final send can't reach a person.
+  - Sender: non-routable `15550001111`. The reply's final send can't reach a person:
+    Meta rejects it (131026). That is a failed send from Mo's only live number, so the
+    probe runs once a day instead of hourly (Andrea, 2026-11-09). The engine probe
+    (`assistant`) stays hourly, so an LLM/KB outage is still caught within ~1h.
   - Read-back key: `AI_PROBE_API_KEY`, a co25 key with **only** the `whatsapp`
     permission (`api_key` id `50066a78511b`). No database access.
   - Side effect: a "Minimo Status Probe" conversation in co25's inbox that gets one
-    exchange per hour. That's expected.
+    exchange per day. That's expected.
 - **AI on Telegram** (`probe_ai_telegram`, every run) — no company of ours has a
   Telegram chat linked to Mo, so this checks the connection: the `@minimoaibot`
   token works, Telegram's webhook points at api.minimo.it with no fresh delivery
