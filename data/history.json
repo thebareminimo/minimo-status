@@ -916,7 +916,8 @@
     "2026-11-05": "operational",
     "2026-11-06": "operational",
     "2026-11-07": "operational",
-    "2026-11-08": "operational"
+    "2026-11-08": "operational",
+    "2026-11-09": "operational"
   },
   "ai_telegram": {
     "2026-10-28": "operational",
@@ -960,11 +961,13 @@
     "2026-11-05": "operational",
     "2026-11-06": "operational",
     "2026-11-07": "operational",
-    "2026-11-08": "operational"
+    "2026-11-08": "operational",
+    "2026-11-09": "operational"
   },
   "forms": {
     "2026-11-06": "operational",
     "2026-11-07": "operational",
-    "2026-11-08": "operational"
+    "2026-11-08": "operational",
+    "2026-11-09": "operational"
   }
 }
