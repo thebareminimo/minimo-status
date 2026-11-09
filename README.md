@@ -74,12 +74,13 @@ check.py every 15 min:                                     index.html  ← fetch
   asynchronously (status `failed`, e.g. 131042 payment issue) the component is down.
   The backend stores only sent/failed, so this catches rejections, not `delivered`.
   Runs every 4h (not every 15 min) so it doesn't buzz a real phone constantly.
-  It sends FROM Minimo's own Meta-direct number (+34 656 48 88 97, ch30, pinned with
-  `sender` = phone_number_id `1434458863076380`) with a co25 key (`WHATSAPP_PROBE_API_KEY`,
+  It sends FROM Minimo's own Meta-direct number (+34 652 58 43 93, ch17, pinned with
+  `sender` = phone_number_id `102822832536723`; until 2026-11-09 +34 656 48 88 97 ch30,
+  locked by Meta) with a co25 key (`WHATSAPP_PROBE_API_KEY`,
   else `AI_PROBE_API_KEY`), so it measures the platform on a number Minimo owns, not a
   customer's number (until 2026-10-31 it used BeautyGo's 360dialog key, and BeautyGo's own
   migration turned the page red). Template `minimo_status_check` (en_US, UTILITY, no
-  params) must stay approved on Minimo's WABA `1819617479061624`; overrides:
+  params) must stay approved on Minimo's WABA `111237151683761`; overrides:
   `WHATSAPP_TEMPLATE_NAME`, `_LANG`, `_PARAMS`, `WHATSAPP_PROBE_SENDER`.
   **Debounce:** a single paid send can fail for a transient Meta/billing blip rather
   than a Minimo outage. The WhatsApp component
@@ -163,7 +164,7 @@ can't see any of those channels, so each one has its own row under **AI**:
 - **AI on WhatsApp** (`probe_ai_whatsapp`, hourly with the engine probe) — the real
   end-to-end. It posts a synthetic Meta-shaped inbound message to
   `api.minimo.it/public/v1/webhooks/whatsapp` for Minimo's own AI number
-  (+34 656 48 88 97, The Bare OÜ co25, channel 30, `minimo_ai`), then reads the
+  (+34 652 58 43 93, The Bare OÜ co25, channel 17, `minimo_ai`), then reads the
   conversation back through the public API until the AI reply shows up. That's the
   whole prod pipeline from the table above (ingest → queue → worker → AI → dispatch),
   the same path every customer's support bot uses, so it catches the 2026-09-22/23

@@ -16,7 +16,7 @@ Probes are grouped into two tiers:
               Mailosaur inbox (true end-to-end delivery).
   - whatsapp: send the APPROVED UTILITY template `minimo_status_check` through
               Minimo's public API (co25 key), pinned with `sender` to Minimo's own
-              Meta-direct number (+34 656 48 88 97, ch30), and confirm Minimo
+              Meta-direct number (+34 652 58 43 93, ch17), and confirm Minimo
               accepts it. Measures the platform on a number Minimo owns, not a
               customer's number (changed 2026-10-31).
               The template must exist + be approved on the active account
@@ -36,7 +36,7 @@ Probes are grouped into two tiers:
               OpenAI for KB embeddings) silently stopped replying, with no alert.
 
   AI on every channel — where people actually talk to the AI:
-  - ai_whatsapp: synthetic inbound to Minimo's own AI number (co25 ch30) → wait
+  - ai_whatsapp: synthetic inbound to Minimo's own AI number (co25 ch17) → wait
               for the AI reply via the public API. Full prod pipeline, hourly.
   - ai_telegram: @minimoaibot token + webhook health + our endpoint accepts updates.
   - ai_slack: signed Slack url_verification handshake echoed by the prod endpoint.
@@ -240,8 +240,9 @@ def probe_email():
 def _whatsapp_attempt():
     # Send through MINIMO ITSELF (2026-10-31): POST /public/v1/templates/whatsapp/send
     # with a co25 (Minimo / The Bare OÜ) key, pinned with `sender` to Minimo's own
-    # Meta-direct number (+34 656 48 88 97, ch30, phone_number_id 1434458863076380,
-    # WABA 1819617479061624). This measures the PLATFORM (API key auth -> template
+    # Meta-direct number (+34 652 58 43 93, ch17, phone_number_id 102822832536723,
+    # WABA 111237151683761; moved 2026-11-09 from +34 656 48 88 97 ch30 / WABA
+    # 1819617479061624, which Meta locked: 131031). This measures the PLATFORM (API key auth -> template
     # resolution -> channel -> Meta Cloud API) on a number Minimo owns and pays for,
     # instead of a customer's number: the old probe sent directly with BeautyGo's
     # 360dialog key, so BeautyGo's own migration (credit line, routing) turned the
@@ -252,10 +253,10 @@ def _whatsapp_attempt():
     # whatsapp permission, already used by the AI-on-WhatsApp probe).
     api_key   = env("WHATSAPP_PROBE_API_KEY", "") or env("AI_PROBE_API_KEY", required=True)
     base      = env("WHATSAPP_PROBE_BASE", "https://api.minimo.it").rstrip("/")
-    sender    = env("WHATSAPP_PROBE_SENDER", "1434458863076380")
+    sender    = env("WHATSAPP_PROBE_SENDER", "102822832536723")
     recipient = env("WHATSAPP_TEST_RECIPIENT", "+393886543634")
     # `minimo_status_check` (en_US, UTILITY, BODY-only, no params/buttons) is
-    # approved on Minimo's WABA 1819617479061624 for this probe only.
+    # approved on Minimo's WABA 111237151683761 for this probe only (draft 1318).
     tpl_name  = env("WHATSAPP_TEMPLATE_NAME", "minimo_status_check")
     tpl_lang  = env("WHATSAPP_TEMPLATE_LANG", "en_US")
     template  = {"name": tpl_name, "languageCode": tpl_lang}
@@ -486,7 +487,7 @@ def _ai_whatsapp_attempt(attempt):
     AI reply. Returns (status, detail).
 
     Target: Minimo's own AI number on Meta-direct (The Bare OÜ, company 25,
-    channel 30, responder minimo_ai). It runs the same path as every
+    channel 17, responder minimo_ai). It runs the same path as every
     customer's AI support bot:
         POST /public/v1/webhooks/whatsapp → ingest + channel routing
         → whatsapp-webhook-queue → worker → assistant reply → outbound dispatch
@@ -502,8 +503,8 @@ def _ai_whatsapp_attempt(attempt):
     only has the `whatsapp` permission (AI_PROBE_API_KEY). No database access."""
     base     = env("AI_WA_API_BASE", "https://api.minimo.it").rstrip("/")
     key      = env("AI_PROBE_API_KEY", "")
-    business = _digits(env("AI_WA_BUSINESS_NUMBER", "34656488897"))
-    pnid     = env("AI_WA_PHONE_NUMBER_ID", "1434458863076380")
+    business = _digits(env("AI_WA_BUSINESS_NUMBER", "34652584393"))
+    pnid     = env("AI_WA_PHONE_NUMBER_ID", "102822832536723")
     sender   = _digits(env("AI_WA_SENDER", "15550001111"))
     timeout  = int(env("AI_WA_TIMEOUT", "150"))
     if not key:
