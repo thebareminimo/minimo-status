@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-27T23:49:08Z",
+  "updated_at": "2026-11-28T00:18:09Z",
   "overall": "operational",
   "components": [
     {
@@ -9,11 +9,10 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 97.78,
-      "last_check": "2026-11-27T23:49:08Z",
+      "last_check": "2026-11-28T00:18:09Z",
       "history": [
         "operational",
         "operational",
-        "operational",
         "down",
         "operational",
         "operational",
@@ -46,6 +45,7 @@
         "operational",
         "operational",
         "down",
+        "operational",
         "operational",
         "operational",
         "operational",
@@ -110,9 +110,8 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 97.78,
-      "last_check": "2026-11-27T23:49:08Z",
+      "last_check": "2026-11-28T00:18:09Z",
       "history": [
-        "operational",
         "operational",
         "operational",
         "down",
@@ -120,6 +119,7 @@
         "operational",
         "operational",
         "degraded",
+        "operational",
         "operational",
         "operational",
         "operational",
@@ -211,9 +211,8 @@
       "category": "Core services",
       "status": "operational",
       "uptime_90d": 97.78,
-      "last_check": "2026-11-27T23:49:08Z",
+      "last_check": "2026-11-28T00:18:09Z",
       "history": [
-        "operational",
         "operational",
         "operational",
         "degraded",
@@ -302,6 +301,7 @@
         "operational",
         "operational",
         "operational",
+        "operational",
         "operational"
       ]
     },
@@ -312,7 +312,7 @@
       "category": "Delivery",
       "status": "operational",
       "uptime_90d": 92.22,
-      "last_check": "2026-11-27T23:49:08Z",
+      "last_check": "2026-11-28T00:18:09Z",
       "history": [
         "operational",
         "operational",
@@ -329,7 +329,6 @@
         "operational",
         "operational",
         "operational",
-        "operational",
         "down",
         "down",
         "down",
@@ -355,6 +354,7 @@
         "operational",
         "down",
         "down",
+        "operational",
         "operational",
         "operational",
         "operational",
@@ -413,9 +413,8 @@
       "category": "Delivery",
       "status": "operational",
       "uptime_90d": 95.56,
-      "last_check": "2026-11-27T20:07:11Z",
+      "last_check": "2026-11-28T00:18:09Z",
       "history": [
-        "operational",
         "down",
         "operational",
         "operational",
@@ -487,6 +486,7 @@
         "operational",
         "operational",
         "down",
+        "operational",
         "operational",
         "operational",
         "operational",
@@ -540,7 +540,6 @@
         null,
         null,
         null,
-        null,
         "operational",
         "operational",
         "operational",
@@ -606,7 +605,8 @@
         "operational",
         "operational",
         "operational",
-        "operational"
+        "operational",
+        null
       ]
     },
     {
@@ -676,7 +676,6 @@
         null,
         null,
         null,
-        null,
         "operational",
         "operational",
         "operational",
@@ -707,7 +706,8 @@
         "operational",
         "operational",
         "operational",
-        "operational"
+        "operational",
+        null
       ],
       "fail_streak": 0
     },
@@ -717,10 +717,9 @@
       "description": "Telegram messages reach Minimo's AI bot.",
       "category": "AI",
       "status": "operational",
-      "uptime_90d": 96.77,
-      "last_check": "2026-11-27T23:49:08Z",
+      "uptime_90d": 96.88,
+      "last_check": "2026-11-28T00:18:09Z",
       "history": [
-        null,
         null,
         null,
         null,
@@ -809,6 +808,7 @@
         "operational",
         "operational",
         "operational",
+        "operational",
         "operational"
       ],
       "fail_streak": 0
@@ -820,7 +820,7 @@
       "category": "AI",
       "status": "operational",
       "uptime_90d": 100.0,
-      "last_check": "2026-11-27T23:49:08Z",
+      "last_check": "2026-11-28T00:18:09Z",
       "history": [
         null,
         null,
@@ -880,7 +880,7 @@
         null,
         null,
         null,
-        null,
+        "operational",
         "operational",
         "operational",
         "operational",
@@ -990,7 +990,6 @@
         null,
         null,
         null,
-        null,
         "operational",
         "operational",
         "operational",
@@ -1012,7 +1011,8 @@
         "operational",
         "operational",
         "operational",
-        "operational"
+        "operational",
+        null
       ],
       "fail_streak": 0
     }
